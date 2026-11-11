@@ -331,3 +331,7 @@ body:has(.demo-bar) .main-nav { top: calc(100% + 6px); }
 .fx-dash.is-guest [data-board] { order: -1; }
 .fx-dash.is-guest [data-steps] { grid-column: 1 / -1; }
 @media (max-width: 960px) { .fx-dash.is-guest > .fx-col:last-child { grid-template-columns: minmax(0, 1fr); } }
+
+/* the dashboard's own claim panel only exists once connected (homepage has the hero one) */
+.fx-dash.is-guest .fx-dash-claim { display: none; }
+.fx-dash:not(.is-guest) { padding-top: 32px; }

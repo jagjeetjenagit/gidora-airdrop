@@ -13,7 +13,7 @@
   let claim = null;       // claim record (when claimed)
   let boardPeriod = 'all';
   let claiming = false;
-  let pendingClaim = false; // user pressed Claim before connecting
+  let checking = false;     // checking claim status right after connect
   let lastTiles = '';
 
   const connected = () => wallet.status === 'connected';
@@ -76,8 +76,10 @@
 
   // ------------------------------------------------------------ hero claim card
   function renderClaimBox() {
-    const el = $('[data-claimbox]');
-    if (!el || !campaign) return;
+    if (!campaign) return;
+    $$('[data-claimbox]').forEach(renderClaimBoxInto);
+  }
+  function renderClaimBoxInto(el) {
     const s = campaign.stats;
     const fee = claimFee();
 
@@ -95,7 +97,11 @@
       return;
     }
 
-    const btn = `<button class="fx-btn-black" data-claim ${claiming ? 'disabled' : ''}>${claiming ? '<span class="spinner"></span> Processing…' : 'Claim $GDR'}</button>`;
+    const btn = !connected()
+      ? '<button class="fx-btn-black" data-action="connect">Connect to Claim</button>'
+      : checking
+        ? `<button class="fx-btn-black" disabled><span class="spinner"></span> Checking claim status…</button>`
+        : `<button class="fx-btn-black" data-claim ${claiming ? 'disabled' : ''}>${claiming ? '<span class="spinner"></span> Processing…' : 'Claim $GDR'}</button>`;
     el.innerHTML = `<div class="fx-stack"><div class="fx-stack-inner">
         <h2 class="fx-free">GDR <span class="gold">Free</span> Airdrop</h2>
         <div class="fx-worth">Worth of</div>
@@ -284,13 +290,19 @@
       <div class="fx-foot-bar">One level only · paid in USDC · subject to final campaign terms</div>`;
   }
 
-  async function renderDashboard() {
+  async function renderDashboard(announce = false) {
     if (connected()) {
+      checking = true; renderClaimBox();
+      const started = Date.now();
       try { me = await api('/referrals/me', { auth: true }); claim = me.claim || null; } catch { me = null; claim = null; }
-    } else { me = null; claim = null; }
+      if (announce && DEMO) await new Promise((r) => setTimeout(r, Math.max(0, 900 - (Date.now() - started))));
+      checking = false;
+      if (announce) toast(claim ? `This wallet already claimed ${fmt.gdr(claim.amount)} GDR` : 'Wallet eligible. You can claim now.', claim ? 'ok' : 'info');
+    } else { me = null; claim = null; checking = false; }
     if (!campaign) return;
-    // personal dashboard only for connected wallets
+    // Figma: homepage for guests, dedicated dashboard once connected
     document.getElementById('dashboard').classList.toggle('is-guest', !connected());
+    document.getElementById('view-home').hidden = connected();
     renderProfile();
     renderOverview();
     renderReferral();
@@ -301,9 +313,9 @@
 
   // ------------------------------------------------------------ pay & claim flow
   function confirmClaim() {
-    if (claiming || claim || !campaign) return;
+    if (claiming || claim || checking || !campaign) return;
+    if (!connected()) { wallet.openPicker(); return; }
     const s = campaign.stats;
-    const isConn = connected();
     const fee = claimFee() || 0;
     const r = activeRound();
     const d = modal.open(`
@@ -314,7 +326,7 @@
         <div class="muted xsmall mt-2">≈ ${usd(s.nextAllocation)} at the $${price()} estimate · claim #${fmt.int(s.nextPosition)}</div>
       </div>
       <dl class="kv">
-        <dt>Wallet</dt><dd class="mono">${isConn ? esc(fmt.short(wallet.address)) : '<span class="muted">Not connected</span>'}</dd>
+        <dt>Wallet</dt><dd class="mono">${esc(fmt.short(wallet.address))}</dd>
         <dt>Round</dt><dd>${esc(r ? r.name : '—')}</dd>
         <dt>Claim fee</dt><dd>${money(fee)}${r && !r.fee ? ' <span class="muted xsmall">(proposed)</span>' : ''}</dd>
         <dt>Network fee</dt><dd>~0.000005 SOL</dd>
@@ -322,12 +334,9 @@
       <div class="fx-total"><span>Total to pay</span><span>${money(fee)} + network fee</span></div>
       <div class="claim-actions mt-3" style="grid-template-columns:1fr 1.4fr">
         <button class="btn btn-ghost" data-close>Cancel</button>
-        <button class="btn btn-primary" id="btn-pay">${isConn ? `Pay ${money(fee)} &amp; Claim` : `Connect Wallet &amp; Pay ${money(fee)}`}</button>
+        <button class="btn btn-primary" id="btn-pay">Pay ${money(fee)} &amp; Claim</button>
       </div>`);
-    d.querySelector('#btn-pay').addEventListener('click', () => {
-      if (!connected()) { pendingClaim = true; modal.close(); wallet.openPicker(); return; }
-      submitClaim(fee);
-    });
+    d.querySelector('#btn-pay').addEventListener('click', () => submitClaim(fee));
   }
 
   const wait = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -382,16 +391,8 @@
     if (wallet.status === 'connecting') return;
     me = null; claim = null;
     renderBoards();
-    renderDashboard().then(() => {
-      // resume the claim the user started before connecting
-      if (pendingClaim && connected()) { pendingClaim = false; if (!claim) confirmClaim(); }
-      else if (!connected()) pendingClaim = false;
-    });
-  });
-
-  // closing the wallet picker without connecting cancels the pending claim
-  document.getElementById('wallet-modal').addEventListener('close', () => {
-    setTimeout(() => { if (wallet.status === 'disconnected') pendingClaim = false; }, 0);
+    if (connected()) window.scrollTo({ top: 0, behavior: 'smooth' });
+    renderDashboard(connected());
   });
 
   const panel = document.getElementById('demo-panel');
