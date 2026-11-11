@@ -4,7 +4,8 @@ const crypto = require('crypto');
 const config = require('../config/campaign');
 const curve = require('../lib/curve');
 const store = require('../lib/store');
-const { isValidAddress, verifySignature, shortAddress } = require('../lib/solana');
+const { isValidAddress, verifySignature, shortAddress, base58Encode } = require('../lib/solana');
+const { scheduleRounds, demoClaims } = require('../lib/schedule');
 
 const router = express.Router();
 const SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
@@ -60,12 +61,13 @@ function auth(req, res, next) {
   }
 }
 
-function activeRound() { return config.rounds.find((r) => r.status === 'active') || null; }
+const rounds = () => scheduleRounds(config.rounds, Date.now(), config.demo);
+function activeRound() { return rounds().find((r) => r.status === 'active') || null; }
 
 function publicRound(r) {
   return {
     id: r.id, name: r.name, status: r.status,
-    startsAt: r.startsAt, endsAt: r.endsAt,
+    startsAt: r.startsAt, endsAt: r.endsAt, demoSchedule: !!r.demoSchedule,
     fee: r.fee.confirmed ? { amount: r.fee.amount, currency: r.fee.currency } : null,
   };
 }
@@ -80,13 +82,18 @@ function stats() {
     percentDistributed: +((distributed / curve.BUDGET) * 100).toFixed(4),
     nextPosition: count + 1,
     nextAllocation: count < curve.N ? +curve.allocationAt(count + 1).toFixed(6) : 0,
+    ...(config.demo ? (() => {
+      const before = demoClaims(Date.now() - 86_400_000, config.demo);
+      const c24 = count - store.realClaimCount() - before;
+      return { claims24h: c24, distributed24h: +(distributed - curve.distributedAfter(count - c24)).toFixed(2) };
+    })() : { claims24h: null, distributed24h: null }),
     updatedAt: new Date().toISOString(),
   };
 }
 
 // demo-only deterministic eligibility, so every UI state can be reviewed
 function demoEligibility(wallet) {
-  if (isDemoWallet(wallet)) return { status: 'eligible' };
+  if (config.DEMO_MODE) return { status: 'eligible' }; // MVP: every demo claim succeeds
   const b = crypto.createHash('sha256').update('elig:' + wallet).digest()[0] % 20;
   if (b === 0) return { status: 'review', reason: 'This wallet is under standard anti-abuse review. Reviews usually complete within 24 hours.' };
   if (b === 1) return { status: 'not_eligible', reason: 'insufficient_sol', message: 'Your wallet needs a small SOL balance to pay Solana network fees.' };
@@ -104,7 +111,7 @@ router.get('/campaign', (req, res) => {
     brand: config.brand,
     network: { name: config.network.name, cluster: config.network.cluster, explorer: config.network.explorer },
     token: config.token,
-    rounds: config.rounds.map(publicRound),
+    rounds: rounds().map(publicRound),
     activeRound: activeRound() ? activeRound().id : null,
     stats: stats(),
     curve: { ...curve.meta, first: curve.MAX, last: curve.MIN, positions: curve.N, budget: curve.BUDGET },
@@ -146,9 +153,10 @@ router.get('/session/nonce', rateLimit({ windowMs: 60_000, max: 30 }), (req, res
 });
 
 router.post('/session', rateLimit({ windowMs: 60_000, max: 20 }), (req, res) => {
-  const { wallet, signature } = req.body || {};
+  const { wallet, signature, demo } = req.body || {};
   if (!validWallet(wallet)) return fail(res, 400, 'invalid_wallet', 'Invalid wallet address.');
-  if (isDemoWallet(wallet)) return res.json({ token: issueToken(wallet), wallet, demo: true });
+  // Demo MVP: simulated wallets connect without a signature
+  if (isDemoWallet(wallet) || (config.DEMO_MODE && demo === true)) return res.json({ token: issueToken(wallet), wallet, demo: true });
   const entry = nonces.get(wallet);
   if (!entry || entry.exp < Date.now()) return fail(res, 400, 'nonce_expired', 'Verification request expired. Please try again.');
   if (!verifySignature(wallet, entry.message, signature)) return fail(res, 401, 'bad_signature', 'Signature could not be verified.');
@@ -236,6 +244,24 @@ router.get('/referrals/me', auth, (req, res) => {
     },
     claim: store.getClaim(wallet),
   });
+});
+
+// --- live activity (demo: simulated claim stream; live: recent indexed claims)
+router.get('/activity', (req, res) => {
+  const limit = Math.min(30, Math.max(1, parseInt(req.query.limit, 10) || 16));
+  const now = Date.now();
+  const items = store.recentClaims(limit).map((c) => ({ wallet: shortAddress(c.wallet), index: c.index, amount: c.amount, at: c.at }));
+  if (config.demo) {
+    const count = demoClaims(now, config.demo);
+    const lastAt = Date.parse(config.demo.epoch) + (count - config.demo.baseClaims) * config.demo.msPerClaim;
+    for (let i = 0; i < limit; i++) {
+      const index = count - i;
+      const w = base58Encode(crypto.createHash('sha256').update('claim-' + index).digest());
+      items.push({ wallet: shortAddress(w), index, amount: +curve.allocationAt(index).toFixed(6), at: new Date(lastAt - i * config.demo.msPerClaim).toISOString(), sample: true });
+    }
+  }
+  items.sort((a, b) => (a.at < b.at ? 1 : -1));
+  res.json({ items: items.slice(0, limit), demo: !!config.demo });
 });
 
 // --- leaderboard

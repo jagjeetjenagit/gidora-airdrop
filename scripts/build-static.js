@@ -14,7 +14,6 @@ const path = require('path');
 const ejs = require('ejs');
 const config = require('../src/config/campaign');
 const curve = require('../src/lib/curve');
-const { DEMO_CLAIM_OFFSET } = require('../src/lib/store');
 
 const ROOT = path.join(__dirname, '..');
 const OUT = path.join(ROOT, 'dist');
@@ -51,14 +50,18 @@ const pages = [
     brand: config.brand,
     network: { name: config.network.name, cluster: config.network.cluster, explorer: config.network.explorer },
     token: config.token,
-    rounds: config.rounds.map(publicRound),
+    rounds: config.rounds.map(publicRound), // statuses/dates are computed in-browser by GDRSchedule
     referral: { ratePercent: config.referral.ratePercent, confirmed: config.referral.confirmed, levels: config.referral.levels },
     kolPool: config.kolPool,
-    demoClaimOffset: DEMO_CLAIM_OFFSET,
+    demo: config.demo,
     curve: { N: curve.N, MAX: curve.MAX, MIN: curve.MIN, BUDGET: curve.BUDGET, K: curve.K },
     curveMeta: { ...curve.meta, first: curve.MAX, last: curve.MIN, positions: curve.N, budget: curve.BUDGET },
   };
-  fs.writeFileSync(path.join(OUT, 'js', 'static-config.js'), `window.GDR_STATIC_CONFIG = ${JSON.stringify(staticConfig)};\n`);
+  // schedule.js is shared verbatim with the browser so demo logic never drifts
+  const scheduleSrc = fs.readFileSync(path.join(ROOT, 'src', 'lib', 'schedule.js'), 'utf8');
+  fs.writeFileSync(path.join(OUT, 'js', 'static-config.js'),
+    `window.GDR_STATIC_CONFIG = ${JSON.stringify(staticConfig)};\n` +
+    `window.GDRSchedule = (function () { var module = { exports: {} };\n${scheduleSrc}\nreturn module.exports; })();\n`);
   fs.writeFileSync(path.join(OUT, '.nojekyll'), '');
 
   console.log(`Static site built → dist/  (base path: ${base})`);

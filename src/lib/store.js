@@ -19,7 +19,7 @@ const config = require('../config/campaign');
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', '..', 'data');
 const FILE = path.join(DATA_DIR, 'store.json');
 
-const DEMO_CLAIM_OFFSET = 1_284_516; // illustrative sample claims already "made"
+const { demoClaims } = require('./schedule');
 
 let state = { claims: {}, referrals: {}, codes: {} };
 let saveTimer = null;
@@ -57,10 +57,14 @@ function walletForCode(code) {
 function realClaimCount() { return Object.keys(state.claims).length; }
 
 function claimCount() {
-  return (config.DEMO_MODE ? DEMO_CLAIM_OFFSET : 0) + realClaimCount();
+  return demoClaims(Date.now(), config.demo) + realClaimCount();
 }
 
 function getClaim(wallet) { return state.claims[wallet] || null; }
+
+function recentClaims(n) {
+  return Object.values(state.claims).sort((a, b) => (a.at < b.at ? 1 : -1)).slice(0, n);
+}
 
 function recordClaim(wallet, { round, demo }) {
   if (state.claims[wallet]) return { error: 'already_claimed', claim: state.claims[wallet] };
@@ -145,8 +149,7 @@ function _reset() { state = { claims: {}, referrals: {}, codes: {} }; demoBoard 
 load();
 
 module.exports = {
-  DEMO_CLAIM_OFFSET,
-  claimCount, realClaimCount, getClaim, recordClaim,
+  claimCount, realClaimCount, getClaim, recordClaim, recentClaims,
   referralCodeFor, walletForCode, bindReferral, referralStats,
   leaderboard, _reset,
 };

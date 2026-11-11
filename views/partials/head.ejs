@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><%= title %> · <%= site.brand.name %> (<%= site.brand.ticker %>)</title>
   <meta name="description" content="<%= site.brand.tagline %> Eligible Solana wallets can claim GDR from the 10,000,000 GDR early-adoption allocation.">
-  <meta name="theme-color" content="#08090b">
+  <meta name="theme-color" content="#0b0e11">
   <meta property="og:title" content="<%= title %> · GIDORA">
   <meta property="og:description" content="<%= site.brand.tagline %>">
   <link rel="icon" href="<%= base %>img/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<%= base %>css/styles.css">
 </head>
 <body data-page="<%= nav %>" data-demo="<%= site.demo %>" data-base="<%= base %>" data-static="<%= isStatic %>">
@@ -20,16 +20,16 @@
 
 <% if (site.demo) { %>
 <div class="demo-bar" role="note">
-  <svg class="i" aria-hidden="true"><use href="#i-info"/></svg>
-  <span><strong>Preview build.</strong> All figures are illustrative sample data. No on-chain transactions are made.</span>
+  <span class="tag">DEMO</span>
+  <span>MVP preview: wallets, claims and figures are simulated. No on-chain transactions are made.</span>
 </div>
 <% } %>
 
 <header class="site-header" id="top">
   <div class="container header-inner">
     <a href="<%= base %>" class="logo" aria-label="GIDORA home">
-      <img src="<%= base %>img/logo.svg" alt="" width="30" height="30">
-      <span>GIDORA</span>
+      <img src="<%= base %>img/logo.svg" alt="" width="34" height="34">
+      <span class="logo-word">GIDORA</span>
     </a>
 
     <nav class="main-nav" id="main-nav" aria-label="Primary">
@@ -41,6 +41,7 @@
     </nav>
 
     <div class="header-actions">
+      <span class="net-pill" title="Network"><span class="dot" aria-hidden="true"></span><svg class="i" aria-hidden="true"><use href="#i-solana"/></svg>Solana</span>
       <a href="<%= base %>#claim" class="btn btn-ghost btn-sm mobile-claim">Claim</a>
       <div class="wallet-slot" data-wallet-slot>
         <button class="btn btn-primary btn-sm" data-action="connect">
@@ -54,5 +55,10 @@
     </div>
   </div>
 </header>
+
+<div class="ticker" aria-label="Recent claims" id="ticker">
+  <span class="ticker-label"><span class="live" aria-hidden="true"></span>Live claims</span>
+  <div class="ticker-track" id="ticker-track" aria-live="off"></div>
+</div>
 
 <main id="main">

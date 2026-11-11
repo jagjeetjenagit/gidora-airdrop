@@ -142,46 +142,39 @@
     openPicker() {
       const dlg = document.getElementById('wallet-modal');
       const list = document.getElementById('wallet-list');
-      const rows = PROVIDERS.map((p) => {
+      list.innerHTML = PROVIDERS.map((p) => {
         const found = !!p.get();
+        const tag = found ? '<span class="badge badge-ok">Detected</span>'
+          : DEMO ? '<span class="badge badge-gold">Demo</span>'
+          : `<span class="badge badge-muted">Install ${icon('external')}</span>`;
         return `<button class="wallet-opt" data-wallet="${p.id}" data-found="${found}">
-          <span class="w-logo" style="background:${p.color}22;color:${p.color}">${p.name[0]}</span>
-          <span class="w-name">${p.name}</span>
-          ${found ? '<span class="badge badge-ok">Detected</span>' : '<span class="badge badge-muted">Install ' + icon('external', 'i') + '</span>'}
+          <span class="w-logo" style="background:${p.color}1f;color:${p.color}">${p.name[0]}</span>
+          <span class="w-name">${p.name}${!found && DEMO ? '<br><span class="muted xsmall" style="font-weight:400">Simulated connection for the MVP preview</span>' : ''}</span>
+          ${tag}
         </button>`;
-      });
-      if (DEMO) {
-        rows.push(`<button class="wallet-opt" data-wallet="demo">
-          <span class="w-logo" style="background:var(--gold-soft);color:var(--gold)">${icon('gift')}</span>
-          <span class="w-name">Preview with demo wallet<br><span class="muted xsmall">No extension needed. Simulated only.</span></span>
-        </button>`);
-      }
-      list.innerHTML = rows.join('');
+      }).join('');
       list.querySelectorAll('[data-wallet]').forEach((b) => b.addEventListener('click', () => {
         const id = b.dataset.wallet;
-        if (id !== 'demo' && b.dataset.found !== 'true') {
-          window.open(PROVIDERS.find((p) => p.id === id).url, '_blank', 'noopener');
-          return;
-        }
+        const found = b.dataset.found === 'true';
+        if (!found && !DEMO) { window.open(PROVIDERS.find((p) => p.id === id).url, '_blank', 'noopener'); return; }
         dlg.close();
-        this.connect(id);
+        this.connect(id, !found);
       }));
       dlg.querySelector('[data-close]').onclick = () => dlg.close();
       dlg.showModal();
     },
 
-    async connect(id) {
+    async connect(id, simulated = false) {
       this.status = 'connecting'; this.providerId = id; this.emit();
       try {
         let address, signature, demo = false;
-        if (id === 'demo') {
-          let addr = LS.get('gdr_demo_wallet');
-          if (!addr) {
-            const bytes = crypto.getRandomValues(new Uint8Array(24));
-            addr = 'Demo' + b58encode(bytes).slice(0, 32);
-            LS.set('gdr_demo_wallet', addr);
-          }
-          address = addr; demo = true;
+        if (simulated || id === 'demo') {
+          // MVP demo: a stable, realistic-looking address per wallet type
+          const key = `gdr_sim_${id}`;
+          address = LS.get(key);
+          if (!address) { address = b58encode(crypto.getRandomValues(new Uint8Array(32))); LS.set(key, address); }
+          demo = true;
+          await new Promise((r) => setTimeout(r, 650));
         } else {
           const prov = PROVIDERS.find((p) => p.id === id).get();
           if (!prov) throw new Error('Wallet not found. Please install it and refresh.');
@@ -197,12 +190,13 @@
           signature = b58encode(new Uint8Array(sigBytes));
           if (prov.on) prov.on('accountChanged', () => this.disconnect());
         }
-        const s = await api('/session', { method: 'POST', body: { wallet: address, signature } });
+        const s = await api('/session', { method: 'POST', body: { wallet: address, signature, demo } });
         this.session = { token: s.token, wallet: address, provider: id, demo };
         LS.set('gdr_session', this.session);
         Object.assign(this, { address, status: 'connected', isDemo: demo });
         this.emit();
-        toast(demo ? 'Demo wallet connected' : 'Wallet connected and verified', 'ok');
+        const name = (PROVIDERS.find((p) => p.id === id) || { name: 'Wallet' }).name;
+        toast(demo ? `${name} connected (demo)` : `${name} connected and verified`, 'ok');
       } catch (e) {
         this.status = 'disconnected'; this.address = null; this.session = null;
         this.emit();
@@ -225,9 +219,9 @@
     document.querySelectorAll('[data-wallet-slot]').forEach((slot) => {
       if (wallet.status === 'connected') {
         slot.innerHTML = `<div class="wallet-chip" title="${esc(wallet.address)}">
-          <span class="dot" aria-hidden="true"></span>
+          ${identicon(wallet.address, 20)}
           <span class="addr">${esc(fmt.short(wallet.address))}</span>
-          ${wallet.isDemo ? '<span class="badge badge-info">Demo</span>' : ''}
+          ${wallet.isDemo ? '<span class="badge badge-gold">Demo</span>' : ''}
           <button class="icon-btn" data-action="disconnect" aria-label="Disconnect wallet" title="Disconnect">${icon('logout')}</button>
         </div>`;
       } else if (wallet.status === 'connecting') {
@@ -291,8 +285,26 @@
     }
   });
 
+  // ------------------------------------------------------------ live claims ticker
+  const ago = (iso) => {
+    const s = Math.max(1, Math.round((Date.now() - Date.parse(iso)) / 1000));
+    return s < 60 ? `${s}s ago` : s < 3600 ? `${Math.floor(s / 60)}m ago` : `${Math.floor(s / 3600)}h ago`;
+  };
+  async function loadTicker() {
+    const track = document.getElementById('ticker-track');
+    if (!track) return;
+    try {
+      const { items } = await api('/activity?limit=14');
+      if (!items.length) { document.getElementById('ticker').hidden = true; return; }
+      const html = items.map((c) => `<span class="tick"><span class="w">${esc(c.wallet)}</span> claimed <span class="amt">+${fmt.gdr(c.amount)} GDR</span> <span class="ago">#${fmt.int(c.index)} · ${ago(c.at)}</span></span>`).join('');
+      track.innerHTML = html + html; // duplicated for a seamless loop
+    } catch { /* ticker is non-critical */ }
+  }
+
   wallet.restore();
   renderSlot();
+  loadTicker();
+  setInterval(() => { if (document.visibilityState === 'visible') loadTicker(); }, 15_000);
 
   window.GDR = { DEMO, base: BASE, isStatic: STATIC, api, wallet, fmt, esc, icon, toast, modal, copy, share, identicon, LS };
 })();

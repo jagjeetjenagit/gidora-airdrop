@@ -10,7 +10,8 @@
 (function () {
   'use strict';
   const CFG = window.GDR_STATIC_CONFIG;
-  if (!CFG) return;
+  const SCHED = window.GDRSchedule;
+  if (!CFG || !SCHED) return;
 
   // ------------------------------------------------------------ curve (same model as src/lib/curve.js)
   const { N, MAX, MIN, BUDGET, K } = CFG.curve;
@@ -64,8 +65,10 @@
   st = st || { claims: {}, referrals: {}, codes: {} };
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch { /* storage unavailable */ } };
 
-  const claimCount = () => CFG.demoClaimOffset + Object.keys(st.claims).length;
-  const activeRound = () => CFG.rounds.find((r) => r.status === 'active') || null;
+  const realCount = () => Object.keys(st.claims).length;
+  const claimCount = () => SCHED.demoClaims(Date.now(), CFG.demo) + realCount();
+  const rounds = () => SCHED.scheduleRounds(CFG.rounds, Date.now(), CFG.demo);
+  const activeRound = () => rounds().find((r) => r.status === 'active') || null;
   function codeFor(wallet) {
     const code = b58encode(bytesFrom('gdr-ref:' + wallet, 6));
     if (!st.codes[code]) { st.codes[code] = wallet; save(); }
@@ -103,13 +106,8 @@
     return rows;
   }
 
-  function demoEligibility(wallet) {
-    if (isDemoWallet(wallet)) return { status: 'eligible' };
-    const b = hash32('elig:' + wallet) % 20;
-    if (b === 0) return { status: 'review', reason: 'This wallet is under standard anti-abuse review. Reviews usually complete within 24 hours.' };
-    if (b === 1) return { status: 'not_eligible', reason: 'insufficient_sol', message: 'Your wallet needs a small SOL balance to pay Solana network fees.' };
-    return { status: 'eligible' };
-  }
+  // Demo MVP: every claim succeeds; other states are previewed via the demo-state panel
+  const demoEligibility = () => ({ status: 'eligible' });
 
   function stats() {
     const count = claimCount(), d = distributedAfter(count);
@@ -117,6 +115,10 @@
       claimCount: count, distributed: +d.toFixed(2), remaining: +(BUDGET - d).toFixed(2),
       percentDistributed: +((d / BUDGET) * 100).toFixed(4), nextPosition: count + 1,
       nextAllocation: count < N ? +allocationAt(count + 1).toFixed(6) : 0, updatedAt: new Date().toISOString(),
+      ...(() => {
+        const c24 = count - realCount() - SCHED.demoClaims(Date.now() - 86_400_000, CFG.demo);
+        return { claims24h: c24, distributed24h: +(d - distributedAfter(count - c24)).toFixed(2) };
+      })(),
     };
   }
 
@@ -150,7 +152,7 @@
     if (method === 'GET' && p === '/campaign') {
       return ok({
         demo: true, brand: CFG.brand, network: CFG.network, token: CFG.token,
-        rounds: CFG.rounds, activeRound: activeRound() ? activeRound().id : null, stats: stats(),
+        rounds: rounds(), activeRound: activeRound() ? activeRound().id : null, stats: stats(),
         curve: CFG.curveMeta, referral: CFG.referral, kolPool: CFG.kolPool,
       });
     }
@@ -168,9 +170,9 @@
       return ok({ message });
     }
     if (method === 'POST' && p === '/session') {
-      const { wallet, signature } = body || {};
+      const { wallet, signature, demo } = body || {};
       if (!validWallet(wallet)) return fail(400, 'invalid_wallet', 'Invalid wallet address.');
-      if (!isDemoWallet(wallet)) {
+      if (!isDemoWallet(wallet) && demo !== true) {
         if (!nonces[wallet]) return fail(400, 'nonce_expired', 'Verification request expired. Please try again.');
         if ((await verifyEd25519(wallet, nonces[wallet], signature)) === false) return fail(401, 'bad_signature', 'Signature could not be verified.');
         delete nonces[wallet];
@@ -223,6 +225,19 @@
         rewards: { ratePercent: CFG.referral.ratePercent, confirmed: CFG.referral.confirmed, accrued: null, paid: null, asset: null },
         claim: st.claims[wallet] || null,
       });
+    }
+    if (method === 'GET' && p === '/activity') {
+      const limit = Math.min(30, Math.max(1, parseInt(q.get('limit'), 10) || 16));
+      const now = Date.now();
+      const items = Object.values(st.claims).map((c) => ({ wallet: short(c.wallet), index: c.index, amount: c.amount, at: c.at }));
+      const count = SCHED.demoClaims(now, CFG.demo);
+      const lastAt = Date.parse(CFG.demo.epoch) + (count - CFG.demo.baseClaims) * CFG.demo.msPerClaim;
+      for (let i = 0; i < limit; i++) {
+        const index = count - i;
+        items.push({ wallet: short(b58encode(bytesFrom('claim-' + index, 32))), index, amount: +allocationAt(index).toFixed(6), at: new Date(lastAt - i * CFG.demo.msPerClaim).toISOString(), sample: true });
+      }
+      items.sort((a, b) => (a.at < b.at ? 1 : -1));
+      return ok({ items: items.slice(0, limit), demo: true });
     }
     if (method === 'GET' && p === '/leaderboard') {
       const page = Math.max(1, parseInt(q.get('page'), 10) || 1);

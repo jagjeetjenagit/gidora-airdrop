@@ -10,57 +10,69 @@
       <p class="tagline"><%= campaign.brand.tagline %></p>
       <p class="lead">
         Eligible unique Solana wallets can claim GDR from the
-        <strong>10,000,000 GDR</strong> early-adoption allocation, subject to campaign rules and verification.
+        <strong>10,000,000 GDR</strong> early-adoption allocation. Earlier claims receive more.
       </p>
       <div class="cta-row">
         <a href="#claim" class="btn btn-primary btn-lg" data-action="connect-or-scroll">
           <svg class="i" aria-hidden="true"><use href="#i-wallet"/></svg> <span data-cta-label>Connect Wallet</span>
         </a>
-        <a href="#how-it-works" class="btn btn-ghost btn-lg">How the Airdrop Works</a>
+        <a href="#how-it-works" class="btn btn-ghost btn-lg">How It Works</a>
       </div>
       <ul class="trust-row" aria-label="Campaign facts">
-        <li><svg class="i" aria-hidden="true"><use href="#i-solana"/></svg> Solana network</li>
         <li><svg class="i" aria-hidden="true"><use href="#i-check-circle"/></svg> One claim per wallet</li>
+        <li><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg> Non-custodial</li>
         <li><svg class="i" aria-hidden="true"><use href="#i-lock"/></svg> We never ask for your seed phrase</li>
       </ul>
 
-      <div class="counter-block" aria-live="polite">
-        <div class="counter-label">Wallets claimed</div>
-        <div class="counter" id="claim-counter" aria-label="Wallets claimed"></div>
-        <div class="counter-sub muted small">of up to 10,000,000 claim positions</div>
+      <!-- Round countdown -->
+      <div class="countdown-card" id="countdown-card">
+        <div class="cd-head">
+          <div class="cd-title" id="cd-title">Round —</div>
+          <span class="badge badge-muted" id="cd-badge">—</span>
+        </div>
+        <div class="countdown" role="timer" aria-live="off" id="countdown">
+          <div class="cd-unit"><span class="cd-num" data-cd="d">00</span><span class="cd-lbl">Days</span></div>
+          <div class="cd-unit"><span class="cd-num" data-cd="h">00</span><span class="cd-lbl">Hours</span></div>
+          <div class="cd-unit"><span class="cd-num" data-cd="m">00</span><span class="cd-lbl">Mins</span></div>
+          <div class="cd-unit"><span class="cd-num" data-cd="s">00</span><span class="cd-lbl">Secs</span></div>
+        </div>
+        <div class="cd-bar" aria-hidden="true"><span id="cd-bar"></span></div>
+        <div class="cd-foot"><span id="cd-start">—</span><span id="cd-end">—</span></div>
       </div>
     </div>
 
-    <!-- Claim card: rendered by /js/claim.js -->
-    <div class="claim-wrap" id="claim">
-      <div class="claim-card card" id="claim-card" aria-live="polite">
-        <div class="skeleton" style="height:22px;width:50%"></div>
-        <div class="skeleton mt-3" style="height:64px"></div>
-        <div class="skeleton mt-3" style="height:48px"></div>
+    <div>
+      <div class="counter-block" aria-live="polite" style="margin:0 0 18px">
+        <div class="counter-label">Wallets claimed</div>
+        <div class="counter" id="claim-counter" aria-label="Wallets claimed"></div>
+      </div>
+      <!-- Claim card: rendered by /js/claim.js -->
+      <div class="claim-wrap" id="claim">
+        <div class="claim-card" id="claim-card" aria-live="polite">
+          <div class="skeleton" style="height:22px;width:50%"></div>
+          <div class="skeleton mt-3" style="height:110px"></div>
+          <div class="skeleton mt-3" style="height:48px"></div>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ============ PROGRESS ============ -->
-<section class="section section-tight" aria-labelledby="progress-title">
+<!-- ============ LIVE STATS ============ -->
+<section class="section-tight" aria-labelledby="progress-title">
   <div class="container">
-    <div class="card progress-card">
-      <div class="progress-head">
-        <div>
-          <h2 id="progress-title" class="h4">Campaign progress</h2>
-          <p class="muted small">GDR distributed from the 10,000,000 GDR claim allocation</p>
+    <h2 id="progress-title" class="sr-only">Campaign statistics</h2>
+    <div class="stats-strip">
+      <div class="stat"><span class="stat-label">GDR distributed</span><span class="stat-value" id="s-distributed">—</span><span class="delta up" id="d-distributed"></span></div>
+      <div class="stat"><span class="stat-label">GDR remaining</span><span class="stat-value" id="s-remaining">—</span><span class="delta down" id="d-remaining"></span></div>
+      <div class="stat"><span class="stat-label">Wallets claimed</span><span class="stat-value" id="s-claims">—</span><span class="delta up" id="d-claims"></span></div>
+      <div class="stat"><span class="stat-label">Next claim receives</span><span class="stat-value gold" id="s-next">—</span><span class="stat-unit">GDR · estimate</span></div>
+      <div class="stat"><span class="stat-label">Active round</span><span class="stat-value" id="s-round">—</span><span class="stat-unit" id="s-round-sub">—</span></div>
+      <div class="progress-wrap">
+        <div class="progress-meta"><span>Claim allocation distributed</span><span id="stats-updated"></span></div>
+        <div class="progress-bar" role="progressbar" aria-label="Claim allocation distributed" aria-valuemin="0" aria-valuemax="100" id="progress-bar">
+          <span class="progress-fill" id="progress-fill"></span>
         </div>
-        <span class="muted xsmall" id="stats-updated"></span>
-      </div>
-      <div class="progress-bar" role="progressbar" aria-label="Claim allocation distributed" aria-valuemin="0" aria-valuemax="100" id="progress-bar">
-        <span class="progress-fill" id="progress-fill"></span>
-      </div>
-      <div class="stat-grid">
-        <div class="stat"><span class="stat-label">Distributed</span><span class="stat-value" id="s-distributed">—</span><span class="stat-unit">GDR</span></div>
-        <div class="stat"><span class="stat-label">Remaining</span><span class="stat-value" id="s-remaining">—</span><span class="stat-unit">GDR</span></div>
-        <div class="stat"><span class="stat-label">Claims completed</span><span class="stat-value" id="s-claims">—</span><span class="stat-unit">wallets</span></div>
-        <div class="stat"><span class="stat-label">Next claim receives</span><span class="stat-value gold" id="s-next">—</span><span class="stat-unit">GDR (estimate)</span></div>
       </div>
     </div>
   </div>
@@ -75,7 +87,7 @@
       <p class="muted">Claims open in eight rounds. Every claim takes the next position on <em>one</em> continuous allocation curve. Starting a new round does not reset or boost rewards.</p>
     </div>
     <ol class="rounds" id="rounds-list" aria-label="Claim rounds"></ol>
-    <p class="muted xsmall mt-2"><svg class="i i-inline" aria-hidden="true"><use href="#i-info"/></svg> Round dates and any claim fees are shown only once officially approved.</p>
+    <p class="muted xsmall mt-2"><svg class="i i-inline" aria-hidden="true"><use href="#i-info"/></svg> Demo schedule shown. Official round dates and any claim fees will be published before launch.</p>
   </div>
 </section>
 
@@ -255,6 +267,29 @@
     </div>
   </div>
 </section>
+
+<% if (site.demo) { %>
+<div class="demo-panel" id="demo-panel">
+  <div class="demo-menu" role="menu" aria-label="Preview claim states">
+    <h4>Preview claim states</h4>
+    <button data-demo-state="disconnected" role="menuitem"><span class="sw2" style="background:var(--muted)"></span>Not connected</button>
+    <button data-demo-state="checking" role="menuitem"><span class="sw2" style="background:var(--gold)"></span>Checking eligibility</button>
+    <button data-demo-state="eligible" role="menuitem"><span class="sw2" style="background:var(--green)"></span>Eligible</button>
+    <button data-demo-state="pending" role="menuitem"><span class="sw2" style="background:var(--gold)"></span>Transaction pending</button>
+    <button data-demo-state="claimed" role="menuitem"><span class="sw2" style="background:var(--green)"></span>Claimed</button>
+    <hr>
+    <button data-demo-state="review" role="menuitem"><span class="sw2" style="background:var(--orange)"></span>Under review</button>
+    <button data-demo-state="insufficient" role="menuitem"><span class="sw2" style="background:var(--orange)"></span>Insufficient SOL</button>
+    <button data-demo-state="not_eligible" role="menuitem"><span class="sw2" style="background:var(--red)"></span>Not eligible</button>
+    <button data-demo-state="failed" role="menuitem"><span class="sw2" style="background:var(--red)"></span>Transaction failed</button>
+    <button data-demo-state="round_inactive" role="menuitem"><span class="sw2" style="background:var(--blue)"></span>Round closed</button>
+    <button data-demo-state="error" role="menuitem"><span class="sw2" style="background:var(--red)"></span>Service unavailable</button>
+    <hr>
+    <button data-demo-state="reset" role="menuitem"><span class="sw2" style="background:var(--text)"></span>Back to live flow</button>
+  </div>
+  <button type="button" aria-expanded="false" aria-haspopup="menu"><span class="dot"></span>Demo states</button>
+</div>
+<% } %>
 
 <% var scripts = ['claim']; %>
 <%- include('partials/footer', { scripts: scripts }) %>

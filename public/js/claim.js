@@ -36,20 +36,31 @@
     }
   }
 
+  let lastCounter = '';
+  let chartPos = 0;
+  let calcInit = false;
+
   function renderCampaign() {
     const s = campaign.stats;
     const active = campaign.rounds.find((r) => r.status === 'active');
 
     const pill = $('round-pill');
     pill.classList.toggle('is-live', !!active);
-    pill.querySelector('span:last-child').textContent = active ? `${active.name} · Claims open` : 'Claims not open yet';
+    pill.querySelector('span:last-child').textContent = active ? `${active.name} live · Claims open` : 'Claims not open yet';
 
-    // counter digits
+    // counter digits: only changed digits flip
     const str = fmt.int(s.claimCount);
-    $('claim-counter').innerHTML = [...str].map((c) => (c === ',' ? '<span class="sep" aria-hidden="true">,</span>' : `<span class="digit" aria-hidden="true">${c}</span>`)).join('');
-    $('claim-counter').setAttribute('aria-label', `${str} wallets claimed`);
+    if (str !== lastCounter) {
+      $('claim-counter').innerHTML = [...str].map((c, i) => {
+        if (c === ',') return '<span class="sep" aria-hidden="true">,</span>';
+        const changed = lastCounter && lastCounter.length === str.length && lastCounter[i] !== c;
+        return `<span class="digit${changed ? ' flip' : ''}" aria-hidden="true">${c}</span>`;
+      }).join('');
+      $('claim-counter').setAttribute('aria-label', `${str} wallets claimed`);
+      lastCounter = str;
+    }
 
-    // progress
+    // stats strip
     const pct = Math.max(0.4, s.percentDistributed);
     $('progress-fill').style.width = `${Math.min(100, pct)}%`;
     const bar = $('progress-bar');
@@ -59,29 +70,80 @@
     $('s-remaining').textContent = fmt.int(s.remaining);
     $('s-claims').textContent = fmt.int(s.claimCount);
     $('s-next').textContent = fmt.gdr(s.nextAllocation);
-    $('stats-updated').textContent = `${s.percentDistributed.toFixed(2)}% distributed · updated ${fmt.time(s.updatedAt)}`;
+    if (s.claims24h != null) {
+      $('d-distributed').innerHTML = `▲ ${fmt.int(s.distributed24h)} <span class="muted">24h</span>`;
+      $('d-remaining').innerHTML = `▼ ${fmt.int(s.distributed24h)} <span class="muted">24h</span>`;
+      $('d-claims').innerHTML = `▲ ${fmt.int(s.claims24h)} <span class="muted">24h</span>`;
+    }
+    $('s-round').textContent = active ? `${active.id} / ${campaign.rounds.length}` : '—';
+    $('s-round').classList.toggle('up', !!active);
+    $('s-round-sub').textContent = active && active.endsAt ? `ends ${fmt.date(active.endsAt)}` : 'awaiting schedule';
+    $('stats-updated').textContent = `${s.percentDistributed.toFixed(2)}% · updated ${fmt.time(s.updatedAt)}`;
 
     renderRounds();
-    renderChart();
+    // the chart only needs a redraw when the position moves noticeably
+    if (!chartPos || Math.abs(s.nextPosition - chartPos) > 2000) { renderChart(); chartPos = s.nextPosition; }
     $('curve-formula').textContent = `${campaign.curve.formula}, k ≈ ${campaign.curve.k.toFixed(2)}`;
-    updateCalc();
+    if (!calcInit) { updateCalc(); calcInit = true; }
+    tickCountdown();
     if (state === 'loading') onWallet();
     else if (state === 'disconnected') render();
   }
 
+  // ---------------------------------------------------------------- rounds + countdown
+  function roundProgress(r, now = Date.now()) {
+    if (!r.startsAt || !r.endsAt) return 0;
+    const a = Date.parse(r.startsAt), b = Date.parse(r.endsAt);
+    return Math.min(1, Math.max(0, (now - a) / (b - a)));
+  }
+
   function renderRounds() {
-    const labels = { active: 'Active', completed: 'Completed', upcoming: 'Upcoming' };
-    const badge = { active: 'badge-ok', completed: 'badge-muted', upcoming: 'badge-info' };
+    const labels = { active: 'Live', completed: 'Ended', upcoming: 'Upcoming' };
+    const badge = { active: 'badge-ok', completed: 'badge-err', upcoming: 'badge-muted' };
     $('rounds-list').innerHTML = campaign.rounds.map((r) => {
-      const dates = r.startsAt ? `${fmt.date(r.startsAt)}${r.endsAt ? ' – ' + fmt.date(r.endsAt) : ''}` : 'Dates TBA';
+      const dates = r.startsAt ? `${fmt.date(r.startsAt)} –<br>${fmt.date(r.endsAt)}` : 'Dates TBA';
       const fee = r.fee ? `Fee ${r.fee.amount} ${esc(r.fee.currency)}` : 'Fee TBA';
+      const prog = r.status === 'active' ? `<div class="round-progress"><span style="width:${(roundProgress(r) * 100).toFixed(1)}%"></span></div>` : '';
       return `<li class="round ${r.status}" ${r.status === 'active' ? 'aria-current="step"' : ''}>
-        <div class="round-num"><span>Round</span>${r.id}</div>
-        <span class="badge ${badge[r.status]}">${r.status === 'active' ? '<span class="dot"></span>' : ''}${labels[r.status]}</span>
+        <div class="round-num">Round<b>${String(r.id).padStart(2, '0')}</b></div>
+        <span class="badge ${badge[r.status]}" style="align-self:flex-start">${r.status === 'active' ? '<span class="dot"></span>' : ''}${labels[r.status]}</span>
+        ${prog}
         <div class="round-meta">${dates}<br>${fee}</div>
       </li>`;
     }).join('');
   }
+
+  const pad = (n) => String(n).padStart(2, '0');
+  function tickCountdown() {
+    if (!campaign) return;
+    const now = Date.now();
+    const active = campaign.rounds.find((r) => r.status === 'active');
+    const next = campaign.rounds.find((r) => r.status === 'upcoming');
+    const target = active || next;
+    const title = $('cd-title'), badge = $('cd-badge');
+    if (!target || !target.startsAt) {
+      title.innerHTML = 'Round schedule <span>· to be announced</span>';
+      badge.className = 'badge badge-muted'; badge.textContent = 'TBA';
+      return;
+    }
+    const until = active ? Date.parse(active.endsAt) : Date.parse(next.startsAt);
+    let ms = Math.max(0, until - now);
+    if (ms === 0) { loadCampaign(); return; }
+    const d = Math.floor(ms / 86_400_000); ms -= d * 86_400_000;
+    const h = Math.floor(ms / 3_600_000); ms -= h * 3_600_000;
+    const m = Math.floor(ms / 60_000); ms -= m * 60_000;
+    const sec = Math.floor(ms / 1000);
+    const vals = { d: pad(d), h: pad(h), m: pad(m), s: pad(sec) };
+    document.querySelectorAll('[data-cd]').forEach((el) => { if (el.textContent !== vals[el.dataset.cd]) el.textContent = vals[el.dataset.cd]; });
+    title.innerHTML = active ? `${esc(active.name)} ends in` : `${esc(next.name)} starts in`;
+    badge.className = active ? 'badge badge-ok' : 'badge badge-info';
+    badge.innerHTML = active ? '<span class="dot"></span>Live' : 'Upcoming';
+    $('cd-bar').style.width = `${(active ? roundProgress(active, now) : 0) * 100}%`;
+    $('cd-start').textContent = `Start ${fmt.date(target.startsAt)}`;
+    $('cd-end').textContent = `End ${fmt.date(target.endsAt)}${target.demoSchedule ? ' · demo schedule' : ''}`;
+    $('countdown').setAttribute('aria-label', `${title.textContent} ${d} days ${h} hours ${m} minutes`);
+  }
+  setInterval(tickCountdown, 1000);
 
   // ---------------------------------------------------------------- chart
   function renderChart() {
@@ -109,7 +171,7 @@
 
     el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" aria-hidden="true">
       <defs>
-        <linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f5b70a" stop-opacity=".35"/><stop offset="1" stop-color="#f5b70a" stop-opacity="0"/></linearGradient>
+        <linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0b90b" stop-opacity=".3"/><stop offset="1" stop-color="#f0b90b" stop-opacity="0"/></linearGradient>
         <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#f5b70a" stroke-opacity=".25" stroke-width="2"/></pattern>
       </defs>
       <g class="grid">${yTicks.map((v) => `<line x1="${P.l}" x2="${W - P.r}" y1="${y(v)}" y2="${y(v)}"/>`).join('')}</g>
@@ -119,10 +181,10 @@
       </g>
       <path d="${area}" fill="url(#ga)"/>
       ${claimedArea ? `<path d="${claimedArea}" fill="url(#hatch)"/>` : ''}
-      <path d="${line}" fill="none" stroke="#f5b70a" stroke-width="2.5" vector-effect="non-scaling-stroke"/>
-      <line x1="${cx}" x2="${cx}" y1="${P.t}" y2="${y(0)}" stroke="#fff" stroke-opacity=".5" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>
-      <circle cx="${cx}" cy="${cy}" r="6" fill="#fff" stroke="#07080a" stroke-width="2"/>
-      <g id="hover" style="display:none"><line id="hl" stroke="#f5b70a" stroke-opacity=".6" vector-effect="non-scaling-stroke"/><circle id="hc" r="5" fill="#f5b70a"/><rect id="hr" rx="6" fill="#22252b" stroke="#353943"/><text id="ht" class="chart-tip"></text></g>
+      <path d="${line}" fill="none" stroke="#f0b90b" stroke-width="2.5" vector-effect="non-scaling-stroke"/>
+      <line x1="${cx}" x2="${cx}" y1="${P.t}" y2="${y(0)}" stroke="#0ecb81" stroke-opacity=".6" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>
+      <circle cx="${cx}" cy="${cy}" r="6" fill="#0ecb81" stroke="#0b0e11" stroke-width="2"/>
+      <g id="hover" style="display:none"><line id="hl" stroke="#f5b70a" stroke-opacity=".6" vector-effect="non-scaling-stroke"/><circle id="hc" r="5" fill="#f5b70a"/><rect id="hr" rx="6" fill="#2b3139" stroke="#3a414b"/><text id="ht" class="chart-tip"></text></g>
     </svg>`;
     // label for current position (HTML for crisp text)
     const svg = el.querySelector('svg');
@@ -219,7 +281,7 @@
           <div class="state-body">
             <div class="state-icon gold"><span class="spinner"></span></div>
             <h3>Checking eligibility</h3>
-            <p>Reviewing claim status and campaign rules for <span class="mono">${esc(fmt.short(wallet.address))}</span>…</p>
+            <p>Reviewing claim status and campaign rules for <span class="mono">${esc(fmt.short(wallet.address) || 'your wallet')}</span>…</p>
           </div>`;
         break;
 
@@ -233,7 +295,7 @@
             <div class="muted xsmall mt-2">Estimated · claim position #${fmt.int(est.position)}</div>
           </div>
           <dl class="kv">
-            <dt>Wallet</dt><dd class="mono">${esc(fmt.short(wallet.address))}</dd>
+            <dt>Wallet</dt><dd class="mono">${esc(fmt.short(wallet.address) || '—')}</dd>
             <dt>Round</dt><dd>${esc(r ? r.name : '—')}</dd>
             <dt>Claim fee</dt><dd>${fee}</dd>
             <dt>Network fee</dt><dd>~0.000005 SOL</dd>
@@ -257,8 +319,8 @@
       case 'claimed': {
         const c = elig.claim;
         html = `${header('GDR Claim', '<span class="badge badge-ok">' + icon('check-circle') + ' Claimed</span>')}
-          <div class="claim-amount-box">
-            <div class="claim-amount-label">You claimed</div>
+          <div class="claim-amount-box success-burst">
+            <div class="claim-amount-label">${icon('check-circle', 'i-inline')} You claimed</div>
             <div class="claim-amount">${fmt.gdr(c.amount)}<small>GDR</small></div>
           </div>
           <dl class="kv">
@@ -427,6 +489,36 @@
     } catch { /* handled by toast in api */ }
   }
 
+  // ---------------------------------------------------------------- demo state previews
+  const panel = document.getElementById('demo-panel');
+  if (panel) {
+    const toggle = panel.querySelector(':scope > button');
+    toggle.addEventListener('click', () => {
+      const open = panel.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(open));
+    });
+    document.addEventListener('click', (e) => { if (!panel.contains(e.target)) { panel.classList.remove('open'); toggle.setAttribute('aria-expanded', 'false'); } });
+    panel.querySelectorAll('[data-demo-state]').forEach((b) => b.addEventListener('click', () => {
+      const k = b.dataset.demoState;
+      const s = campaign ? campaign.stats : { nextPosition: 1, nextAllocation: 21 };
+      const est = { position: s.nextPosition, allocation: s.nextAllocation, note: 'Estimated. Your final allocation is set by the claim position assigned when your transaction confirms.' };
+      panel.classList.remove('open');
+      switch (k) {
+        case 'reset': onWallet(); break;
+        case 'eligible': elig = { status: 'eligible', estimate: est }; setState('eligible'); break;
+        case 'claimed': elig = { status: 'claimed', claim: { amount: s.nextAllocation, index: s.nextPosition, round: 1, at: new Date().toISOString(), signature: null } }; setState('claimed'); break;
+        case 'review': elig = { status: 'review', reason: 'This wallet is under standard anti-abuse review. Reviews usually complete within 24 hours.' }; setState('review'); break;
+        case 'insufficient': elig = { status: 'not_eligible', reason: 'insufficient_sol' }; setState('not_eligible'); break;
+        case 'not_eligible': elig = { status: 'not_eligible', message: 'This wallet does not meet the campaign rules (for example, it was flagged as a duplicate).' }; setState('not_eligible'); break;
+        case 'failed': lastError = { message: 'The transaction was not confirmed by the network.' }; setState('failed'); break;
+        case 'round_inactive': elig = { message: 'Round 1 has ended. Round 2 opens soon. Check the timeline for the next window.' }; setState('round_inactive'); break;
+        default: setState(k);
+      }
+      document.getElementById('claim').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      toast(`Previewing: ${b.textContent.trim()}`, 'info', 1800);
+    }));
+  }
+
   // ---------------------------------------------------------------- wire up
   function onWallet() {
     if (!campaign) return;
@@ -438,5 +530,5 @@
   document.addEventListener('wallet:change', onWallet);
 
   loadCampaign();
-  setInterval(() => { if (document.visibilityState === 'visible') loadCampaign(); }, 30_000);
+  setInterval(() => { if (document.visibilityState === 'visible') loadCampaign(); }, DEMO ? 6_000 : 30_000);
 })();

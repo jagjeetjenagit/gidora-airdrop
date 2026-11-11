@@ -17,7 +17,7 @@ const rounds = PROPOSED_FEES_USD.map((fee, i) => ({
   id: i + 1,
   name: `Round ${i + 1}`,
   // 'upcoming' | 'active' | 'completed' — set by operator from approved calendar
-  status: DEMO_MODE && i === 0 ? 'active' : 'upcoming',
+  status: 'upcoming', // derived from dates when set (see src/lib/schedule.js)
   startsAt: null, // ISO string once approved
   endsAt: null,
   fee: { amount: fee, currency: 'USD-equivalent', confirmed: false },
@@ -25,6 +25,14 @@ const rounds = PROPOSED_FEES_USD.map((fee, i) => ({
 
 module.exports = {
   DEMO_MODE,
+  // Demo-only simulation parameters (ignored when DEMO_MODE=false)
+  demo: DEMO_MODE ? {
+    scheduleStart: '2026-11-01T00:00:00Z', // rolling 8-round demo calendar
+    roundDays: 14,
+    epoch: '2026-11-11T00:00:00Z',
+    baseClaims: 1_284_516,
+    msPerClaim: 3000,
+  } : null,
   brand: {
     name: 'GIDORA',
     ticker: 'GDR',
