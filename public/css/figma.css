@@ -284,3 +284,42 @@ body:has(.demo-bar) .main-nav { top: calc(100% + 6px); }
 .fx-col > *, .fx-ref-grid > *, .fx-overview > * { min-width: 0; }
 @media (max-width: 960px) { .fx-hero, .fx-two, .fx-dash { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 640px) { .fx-ref-grid, .fx-overview { grid-template-columns: minmax(0, 1fr); } }
+
+/* ------------------------------------------------------------ Figma green / red (sampled from the design) */
+:root {
+  --green: #00c853;
+  --green-soft: rgba(0, 200, 83, .14);
+  --green-line: rgba(0, 200, 83, .55);
+  --red: #f80000;
+  --red-soft: rgba(248, 0, 0, .14);
+  --red-line: rgba(248, 0, 0, .55);
+}
+.fx-profile { border-top-color: var(--red); border-bottom-color: var(--red); box-shadow: 0 0 0 1px rgba(248,0,0,.08), 0 0 30px -12px rgba(248,0,0,.45); }
+.fx-profile.claimed { box-shadow: 0 0 0 1px rgba(0,200,83,.1), 0 0 30px -12px rgba(0,200,83,.5); }
+.fx-pv .val.g { color: var(--green); }
+.fx-lcd-box .n { color: var(--green); text-shadow: 0 0 12px rgba(0,200,83,.55); }
+.fx-lcd .fx-bar span { background: var(--green); }
+
+/* generic lock overlay (any panel) */
+.fx-panel.fx-locked { overflow: hidden; }
+.fx-lock .fx-btn-black { background: #2a2a2a; border-color: #3a3a3a; }
+
+/* hero claim card states */
+.fx-value.g { color: var(--green); }
+.fx-btn-green { background: var(--green) !important; border-color: var(--green) !important; color: #00150a !important; }
+.fx-btn-green:hover { filter: brightness(1.08); }
+.fx-fee-note { font-size: .74rem; color: #8a8a8a; margin-top: 10px; }
+.fx-fee-note b { color: #e5e5e5; }
+
+/* pay & claim modal steps */
+.fx-paysteps { list-style: none; padding: 0; margin: 14px 0 6px; display: grid; gap: 10px; }
+.fx-paysteps li { display: flex; align-items: center; gap: 10px; font-size: .9rem; color: #8a8a8a; }
+.fx-paysteps li .s { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; border: 2px solid #3a3a3a; flex: none; }
+.fx-paysteps li.run { color: #fff; }
+.fx-paysteps li.run .s { border-color: var(--gold); border-right-color: transparent; animation: spin .8s linear infinite; }
+.fx-paysteps li.done { color: var(--green); }
+.fx-paysteps li.done .s { border-color: var(--green); background: var(--green); color: #00150a; }
+.fx-paysteps li.done .s::after { content: '✓'; font-size: .72rem; font-weight: 800; }
+.fx-total { display: flex; justify-content: space-between; padding: 12px 0 0; margin-top: 4px; border-top: 1px solid #2a2a2a; font-weight: 700; }
+.fx-success { text-align: center; padding: 8px 0 4px; }
+.fx-success .big { width: 64px; height: 64px; margin: 6px auto 12px; border-radius: 50%; display: grid; place-items: center; background: var(--green-soft); color: var(--green); font-size: 2rem; font-weight: 800; animation: burst .5s ease-out; }

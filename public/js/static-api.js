@@ -200,7 +200,7 @@
       if (e.status !== 'eligible') return fail(403, e.status, e.message || e.reason);
       if (body && body.ref) bindReferral(wallet, String(body.ref).slice(0, 32));
       const index = claimCount() + 1;
-      const claim = { wallet, index, amount: +allocationAt(index).toFixed(6), round: round.id, demo: true, at: new Date().toISOString(), signature: null };
+      const claim = { wallet, index, amount: +allocationAt(index).toFixed(6), round: round.id, demo: true, feeUsd: round.proposedFeeUsd, at: new Date().toISOString(), signature: null };
       st.claims[wallet] = claim;
       const ref = st.referrals[wallet];
       if (ref && ref.status === 'pending') { ref.status = 'verified'; ref.verifiedAt = claim.at; }

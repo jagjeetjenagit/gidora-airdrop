@@ -45,7 +45,7 @@ const pages = [
     fs.writeFileSync(file, html);
   }
 
-  const publicRound = (r) => ({ id: r.id, name: r.name, status: r.status, startsAt: r.startsAt, endsAt: r.endsAt, fee: r.fee.confirmed ? { amount: r.fee.amount, currency: r.fee.currency } : null });
+  const publicRound = (r) => ({ id: r.id, name: r.name, status: r.status, startsAt: r.startsAt, endsAt: r.endsAt, fee: r.fee.confirmed ? { amount: r.fee.amount, currency: r.fee.currency } : null, proposedFeeUsd: r.fee.amount });
   const staticConfig = {
     brand: config.brand,
     network: { name: config.network.name, cluster: config.network.cluster, explorer: config.network.explorer },

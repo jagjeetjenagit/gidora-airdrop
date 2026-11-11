@@ -4,7 +4,7 @@
      HOME (not connected) · Figma frame "Homepage"
      ===================================================================== -->
 <div id="view-home" class="fx-view">
-  <section class="fx-hero container">
+  <section class="fx-hero container" id="claim">
     <div class="fx-hero-copy">
       <div class="fx-big gold" id="h-pool">$220,000,000</div>
       <div class="fx-airdropped">Airdropped <span>across</span></div>
@@ -18,32 +18,18 @@
     <div class="fx-panel fx-claim-panel">
       <div class="fx-rounds" data-rounds></div>
       <div class="fx-tiles" data-tiles aria-label="Wallets claimed"></div>
-      <div class="fx-stack">
-        <div class="fx-stack-inner">
-          <h2 class="fx-free">GDR <span class="gold">Free</span> Airdrop</h2>
-          <div class="fx-worth">Worth of</div>
-          <div class="fx-value-box">
-            <div class="fx-value gold" data-next-usd>$0.00</div>
-            <div class="fx-value-sub" data-next-gdr>≈ 0 GDR</div>
-            <button class="fx-btn-black" data-action="connect">Connect to Claim</button>
-          </div>
-        </div>
-      </div>
+      <div data-claimbox></div>
       <div class="fx-countdown" data-countdown></div>
     </div>
   </section>
 
-  <section class="container fx-two">
-    <div class="fx-panel" data-board="home"></div>
-    <div class="fx-panel" data-kol></div>
-  </section>
 </div>
 
 <!-- =====================================================================
      DASHBOARD (connected) · Figma frames "Unclaimed" + "Claimed"
      ===================================================================== -->
-<div id="view-dash" class="fx-view" hidden>
-  <section class="container fx-dash">
+<div id="view-dash" class="fx-view">
+  <section class="container fx-dash" id="dashboard" aria-label="Your airdrop dashboard">
     <div class="fx-col">
       <div class="fx-profile" data-profile></div>
       <div class="fx-panel fx-overview" data-overview></div>
@@ -52,12 +38,6 @@
     </div>
 
     <div class="fx-col">
-      <div class="fx-panel fx-claim-panel">
-        <div class="fx-rounds" data-rounds></div>
-        <div class="fx-tiles" data-tiles aria-label="Wallets claimed"></div>
-        <div data-claimbox></div>
-        <div class="fx-countdown" data-countdown></div>
-      </div>
       <div class="fx-panel" data-kol></div>
       <div class="fx-panel" data-steps></div>
       <div class="fx-panel" data-board="dash"></div>

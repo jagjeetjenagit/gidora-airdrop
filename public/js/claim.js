@@ -1,29 +1,35 @@
-/* GIDORA · Claim page (Figma layout): Homepage view + connected Dashboard view */
+/* GIDORA · Claim page (Figma layout)
+   Hero + dashboard on one page. Default state = Unclaimed (red) with referral
+   panels locked. Connect → Claim → Pay claim fee → GDR sent → everything turns green. */
 (function () {
   'use strict';
   const { api, wallet, fmt, esc, icon, toast, modal, copy, LS, DEMO } = window.GDR;
   const $$ = (sel) => [...document.querySelectorAll(sel)];
+  const $ = (sel) => document.querySelector(sel);
   const BASE = window.GDR.base;
 
   let campaign = null;
-  let me = null;          // /referrals/me
+  let me = null;          // /referrals/me (when connected)
   let claim = null;       // claim record (when claimed)
   let boardPeriod = 'all';
   let claiming = false;
   let lastTiles = '';
 
+  const connected = () => wallet.status === 'connected';
   const price = () => (campaign && campaign.token.estPriceUsd) || 22;
-  const usd = (gdr, d = 2) => '$' + new Intl.NumberFormat('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }).format(gdr * price());
+  const money = (n, d = 2) => '$' + new Intl.NumberFormat('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
+  const usd = (gdr, d = 2) => money(gdr * price(), d);
   const refLink = () => (me ? `${location.origin}${BASE}?ref=${me.code}` : '');
+  const activeRound = () => campaign && campaign.rounds.find((r) => r.status === 'active');
+  const claimFee = () => { const r = activeRound(); return r ? (r.fee ? r.fee.amount : r.proposedFeeUsd) : null; };
 
-  // ------------------------------------------------------------ campaign / shared blocks
+  // ------------------------------------------------------------ campaign
   async function loadCampaign() {
     try {
       campaign = await api('/campaign');
       renderShared();
-      if (wallet.status === 'connected') renderClaimBox();
+      renderClaimBox();
     } catch (e) {
-      $$('[data-next-usd]').forEach((el) => { el.textContent = '—'; });
       toast(e.message, 'err');
     }
   }
@@ -34,32 +40,24 @@
     const pool = document.getElementById('h-pool');
     if (pool) pool.textContent = usd(campaign.curve.budget, 0);
 
-    // rounds row
     const roundsHtml = '<span class="lbl">Round</span>' + campaign.rounds.map((r) =>
       `<span class="r ${r.status === 'active' ? 'on' : r.status === 'completed' ? 'done' : ''}" title="${esc(r.name)} · ${r.status}">${r.id}</span>`).join('');
     $$('[data-rounds]').forEach((el) => { el.innerHTML = roundsHtml; });
 
-    // gold tiles: wallets claimed (6+ digits, like the Figma)
     const digits = String(s.claimCount).padStart(6, '0');
     if (digits !== lastTiles) {
       const html = [...digits].map((c, i) => `<span class="t${lastTiles && lastTiles.length === digits.length && lastTiles[i] !== c ? ' flip' : ''}">${c}</span>`).join('');
       $$('[data-tiles]').forEach((el) => { el.innerHTML = html; el.setAttribute('aria-label', `${fmt.int(s.claimCount)} wallets claimed`); });
       lastTiles = digits;
     }
-
-    // home airdrop card
-    $$('[data-next-usd]').forEach((el) => { el.textContent = usd(s.nextAllocation); });
-    $$('[data-next-gdr]').forEach((el) => { el.textContent = `≈ ${fmt.gdr(s.nextAllocation)} GDR · claim #${fmt.int(s.nextPosition)}`; });
-
     renderKol();
     tick();
   }
 
-  // ------------------------------------------------------------ countdown (under claim panel)
   const pad = (n) => String(n).padStart(2, '0');
   function tick() {
     if (!campaign) return;
-    const active = campaign.rounds.find((r) => r.status === 'active');
+    const active = activeRound();
     const next = campaign.rounds.find((r) => r.status === 'upcoming');
     const t = active || next;
     let html = '';
@@ -75,7 +73,45 @@
   }
   setInterval(tick, 1000);
 
-  // ------------------------------------------------------------ KOL pool table
+  // ------------------------------------------------------------ hero claim card
+  function renderClaimBox() {
+    const el = $('[data-claimbox]');
+    if (!el || !campaign) return;
+    const s = campaign.stats;
+    const fee = claimFee();
+
+    if (claim) {
+      el.innerHTML = `<div class="fx-stack"><div class="fx-stack-inner">
+          <h2 class="fx-free">GDR <span class="gold">Free</span> Airdrop</h2>
+          <div class="fx-worth" style="color:var(--green);font-weight:600">✓ Successfully Claimed</div>
+          <div class="fx-value-box">
+            <div class="fx-value g">${usd(claim.amount)}</div>
+            <div class="fx-value-sub">${fmt.gdr(claim.amount)} GDR received · claim #${fmt.int(claim.index)}</div>
+            <button class="fx-btn-black fx-btn-green" data-goto-ref>Share referral link</button>
+          </div>
+        </div></div>`;
+      el.querySelector('[data-goto-ref]').addEventListener('click', () => $('[data-referral]').scrollIntoView({ behavior: 'smooth', block: 'center' }));
+      return;
+    }
+
+    const btn = !connected()
+      ? '<button class="fx-btn-black" data-action="connect">Connect to Claim</button>'
+      : `<button class="fx-btn-black" data-claim ${claiming ? 'disabled' : ''}>${claiming ? '<span class="spinner"></span> Processing…' : 'Claim $GDR'}</button>`;
+    el.innerHTML = `<div class="fx-stack"><div class="fx-stack-inner">
+        <h2 class="fx-free">GDR <span class="gold">Free</span> Airdrop</h2>
+        <div class="fx-worth">Worth of</div>
+        <div class="fx-value-box">
+          <div class="fx-value gold">${usd(s.nextAllocation)}</div>
+          <div class="fx-value-sub">≈ ${fmt.gdr(s.nextAllocation)} GDR · claim #${fmt.int(s.nextPosition)}</div>
+          ${btn}
+          ${fee != null ? `<div class="fx-fee-note">Claim fee <b>${money(fee)}</b> · ${esc(activeRound().name)}${campaign.rounds[0].fee ? '' : ' (proposed)'}</div>` : ''}
+        </div>
+      </div></div>`;
+    const b = el.querySelector('[data-claim]');
+    if (b) b.addEventListener('click', confirmClaim);
+  }
+
+  // ------------------------------------------------------------ KOL + leaderboard
   function renderKol() {
     const tiers = campaign.kolPool.demoTiers || campaign.kolPool.knownTiers;
     const html = `<h3 class="fx-panel-title">KOL Pool Referral Rewards</h3>
@@ -87,7 +123,6 @@
     $$('[data-kol]').forEach((el) => { el.innerHTML = html; });
   }
 
-  // ------------------------------------------------------------ leaderboard (All Time / This week / Last week)
   const MEDALS = ['🥇', '🥈', '🥉'];
   async function renderBoards() {
     let data;
@@ -115,77 +150,82 @@
     });
   }
 
-  // ------------------------------------------------------------ dashboard
-  async function loadMe() {
-    try {
-      me = await api('/referrals/me', { auth: true });
-      claim = me.claim || null;
-    } catch { me = null; claim = null; }
+  // ------------------------------------------------------------ lock overlay
+  function lock(el, message) {
+    el.classList.toggle('fx-locked', !claim);
+    if (claim) return;
+    const btn = connected()
+      ? '<button class="fx-btn-black" data-lock-claim>Claim</button>'
+      : '<button class="fx-btn-black" data-action="connect">Connect Wallet</button>';
+    el.insertAdjacentHTML('beforeend', `<div class="fx-lock"><div class="lk">${icon('lock')}</div><p>${esc(message)}</p>${btn}</div>`);
+    const b = el.querySelector('[data-lock-claim]');
+    if (b) b.addEventListener('click', confirmClaim);
   }
 
+  // ------------------------------------------------------------ dashboard panels
   function renderProfile() {
-    const el = document.querySelector('[data-profile]');
+    const el = $('[data-profile]');
     const claimed = !!claim;
-    const round = campaign && campaign.rounds.find((r) => r.status === 'active');
+    const round = activeRound();
     el.className = `fx-profile${claimed ? ' claimed' : ''}`;
     el.innerHTML = `
       <div class="fx-avatar" aria-hidden="true"></div>
       <dl class="fx-kv">
-        <dt>Wallet</dt><dd><span class="mono">${esc(fmt.short(wallet.address))}</span><button class="icon-mini" data-copy-addr title="Copy address">${icon('copy')}</button></dd>
+        <dt>Wallet</dt><dd>${connected() ? `<span class="mono">${esc(fmt.short(wallet.address))}</span><button class="icon-mini" data-copy-addr title="Copy address">${icon('copy')}</button>` : '<span class="muted">Not connected</span>'}</dd>
         <dt>Status</dt><dd><span class="fx-dot ${claimed ? 'g' : 'r'}"></span><span class="${claimed ? 'fx-st-g' : 'fx-st-r'}">${claimed ? 'Claimed' : 'Unclaimed'}</span></dd>
-        <dt>Referral</dt><dd><span class="fx-pill">${esc(me ? me.code : '—')}</span></dd>
+        <dt>Referral</dt><dd>${claimed && me ? `<span class="fx-pill">${esc(me.code)}</span>` : `<span class="muted">${icon('lock', 'i-inline')} Locked</span>`}</dd>
         <dt>Claim ID</dt><dd><span class="mono">${claimed ? '#' + String(claim.index).padStart(7, '0') : '—'}</span></dd>
       </dl>
       <div class="fx-pv">
         <div>
           <div class="lbl">Airdrop value</div>
           <div class="val ${claimed ? 'g' : 'r'}">${claimed ? usd(claim.amount) : '$0.00'}</div>
-          <div class="sub ${claimed ? 'g' : 'r'}">${claimed ? `▲ ${fmt.gdr(claim.amount)} GDR received` : 'Not claimed yet'}</div>
+          <div class="sub ${claimed ? 'g' : 'r'}">${claimed ? `▲ ${fmt.gdr(claim.amount)} GDR received` : '▼ Not claimed yet'}</div>
         </div>
         <div class="foot">${round ? `${esc(round.name)} · <b>Live</b>` : ''}</div>
       </div>`;
-    el.querySelector('[data-copy-addr]').addEventListener('click', () => copy(wallet.address, 'Address copied'));
+    const c = el.querySelector('[data-copy-addr]');
+    if (c) c.addEventListener('click', () => copy(wallet.address, 'Address copied'));
   }
 
   function renderOverview() {
-    const el = document.querySelector('[data-overview]');
+    const el = $('[data-overview]');
     const v = me ? me.verified : 0, p = me ? me.pending : 0, r = me ? me.underReview : 0;
-    const total = v + p + r;
     const nextTier = [100, 200, 500, 1000].find((t) => t > v) || 1000;
     const s = campaign.stats;
     el.innerHTML = `
       <div>
         <h3>Referral Overview</h3>
         <ul class="fx-legend">
-          <li><span class="fx-sq" style="background:var(--gold)"></span>Total referrals<b>${fmt.int(total)}</b></li>
+          <li><span class="fx-sq" style="background:var(--gold)"></span>Total referrals<b>${fmt.int(v + p + r)}</b></li>
           <li><span class="fx-sq" style="background:var(--green)"></span>Verified<b>${fmt.int(v)}</b></li>
           <li><span class="fx-sq" style="background:var(--red)"></span>Pending<b>${fmt.int(p + r)}</b></li>
           <li><span class="fx-sq" style="background:#3b82f6"></span>Est. USDC earned<b>${fmt.int(v * 0.75)}</b></li>
         </ul>
-        <button class="fx-pillbtn" data-copy-ref ${claim ? '' : 'disabled'}>${icon(claim ? 'copy' : 'lock')} ${claim ? 'Copy referral link' : 'Claim to unlock referrals'}</button>
+        <button class="fx-pillbtn" data-copy-ref>${icon('copy')} Copy referral link</button>
       </div>
       <div>
         <h3>Claim Status</h3>
         <div class="fx-lines">
           <div>Claim: <b class="${claim ? 'fx-st-g' : 'fx-st-r'}">${claim ? 'Completed' : 'Pending'}</b></div>
           <div>${claim ? 'Your position' : 'Next position'}: <b>#${fmt.int(claim ? claim.index : s.nextPosition)}</b></div>
-          <div>Next KOL milestone: <b>${fmt.int(nextTier)} referrals</b></div>
+          <div>Fee paid: <b>${claim && claim.feeUsd != null ? money(claim.feeUsd) : '—'}</b></div>
           <div class="fx-bar" title="${v}/${nextTier}"><span style="width:${Math.min(100, (v / nextTier) * 100)}%"></span></div>
-          <div class="muted xsmall">${fmt.int(v)} / ${fmt.int(nextTier)} verified</div>
+          <div class="muted xsmall">${fmt.int(v)} / ${fmt.int(nextTier)} referrals to next KOL tier</div>
         </div>
         <a class="fx-pillbtn" href="${BASE}leaderboard/">${icon('trophy')} View leaderboard</a>
       </div>`;
     el.querySelector('[data-copy-ref]').addEventListener('click', () => claim && copy(refLink(), 'Referral link copied'));
+    lock(el, 'Claim GDR to unlock your referral stats');
   }
 
   function renderReferral() {
-    const el = document.querySelector('[data-referral]');
-    const link = refLink();
+    const el = $('[data-referral]');
+    const link = refLink() || `${location.origin}${BASE}?ref=XXXXXXXX`;
     const v = me ? me.verified : 0;
     const earned = v * 0.75;
     const msg = encodeURIComponent('Claim your free $GDR airdrop on GIDORA. Limited like Bitcoin, claimable by everyone.');
     const enc = encodeURIComponent(link);
-    el.classList.toggle('fx-locked', !claim);
     el.innerHTML = `
       <div class="fx-ref-head"><h3>Referral Rewards</h3><span class="live">Status <b>● LIVE</b></span></div>
       <div class="fx-ref-title">100 USDC Referral Reward</div>
@@ -193,8 +233,8 @@
       <div class="fx-ref-grid">
         <div>
           <div class="fx-field-lbl">Referral link</div>
-          <div class="fx-field"><code>${esc(link || '—')}</code><button class="icon-mini" data-copy-link title="Copy link">${icon('copy')}</button></div>
-          <div class="fx-field"><code>Code: ${esc(me ? me.code : '—')}</code><button class="icon-mini" data-copy-code title="Copy code">${icon('copy')}</button></div>
+          <div class="fx-field"><code>${esc(link)}</code><button class="icon-mini" data-copy-link title="Copy link">${icon('copy')}</button></div>
+          <div class="fx-field"><code>Code: ${esc(me && claim ? me.code : 'XXXXXXXX')}</code><button class="icon-mini" data-copy-code title="Copy code">${icon('copy')}</button></div>
         </div>
         <div class="fx-lcd">
           <div class="fx-lcd-box"><span class="n">${earned.toFixed(2).padStart(6, '0')}</span><span class="u">USDC</span></div>
@@ -209,65 +249,35 @@
         <a href="https://www.reddit.com/submit?url=${enc}&title=${msg}" target="_blank" rel="noopener" style="background:#FF4500" aria-label="Share on Reddit">r</a>
         <a href="https://wa.me/?text=${msg}%20${enc}" target="_blank" rel="noopener" style="background:#25D366" aria-label="Share on WhatsApp">W</a>
       </div>
-      <div class="fx-foot-bar">Referrals count once the referred wallet completes a verified claim. Self-referrals are excluded.</div>
-      ${claim ? '' : `<div class="fx-lock">
-        <div class="lk">${icon('lock')}</div>
-        <p>Claim GDR to unlock referral rewards</p>
-        <button class="fx-btn-black" data-lock-claim>Claim</button>
-      </div>`}`;
+      <div class="fx-foot-bar">Referrals count once the referred wallet completes a verified claim. Self-referrals are excluded.</div>`;
     if (claim) {
       el.querySelector('[data-copy-link]').addEventListener('click', () => copy(link, 'Referral link copied'));
       el.querySelector('[data-copy-code]').addEventListener('click', () => copy(me.code, 'Referral code copied'));
-    } else {
-      el.querySelector('[data-lock-claim]').addEventListener('click', confirmClaim);
     }
+    lock(el, 'Claim GDR to unlock referral rewards');
   }
 
   function renderSummary() {
-    const el = document.querySelector('[data-summary]');
-    const rows = me && me.recent.length ? me.recent.map((r, i) => `<tr>
+    const el = $('[data-summary]');
+    const rows = claim && me && me.recent.length ? me.recent.map((r, i) => `<tr>
         <td>${i < 3 ? `<span class="fx-medal">${MEDALS[i]}</span>` : `<span class="fx-rk">${i + 1}</span>`}</td>
         <td class="fx-wallet">${esc(r.referee)}</td>
         <td>${r.status === 'verified' ? '<span class="fx-st-g">Verified</span>' : r.status === 'review' ? '<span class="gold">Review</span>' : '<span class="fx-st-r">Pending</span>'}</td>
         <td class="num">${fmt.date(r.at)}</td>
         <td class="num gold">${r.status === 'verified' ? '0.75' : '0.00'}</td>
       </tr>`).join('')
-      : `<tr><td colspan="5" class="c muted" style="padding:22px 6px">${claim ? 'No referrals yet. Share your link to get started.' : 'Claim your GDR to start referring.'}</td></tr>`;
+      : `<tr><td colspan="5" class="c muted" style="padding:22px 6px">${claim ? 'No referrals yet. Share your link to get started.' : '—'}</td></tr>`;
     el.innerHTML = `<h3 class="fx-panel-title">My Active Referral Summary</h3>
       <table class="fx-table">
         <thead><tr><th>#</th><th>Wallet</th><th>Status</th><th class="num">Date</th><th class="num">USDC</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
       <div class="fx-foot-bar">Rewards shown are estimates until referral terms are final.</div>`;
-  }
-
-  function renderClaimBox() {
-    const el = document.querySelector('[data-claimbox]');
-    if (!el || !campaign) return;
-    if (claim) {
-      el.innerHTML = `<div class="fx-claimed-bar"><span class="ok">✔</span> Your $GDR is Successfully Claimed</div>
-        <div class="fx-receipt">
-          <div><span>Received</span><b class="gold">${fmt.gdr(claim.amount)} GDR</b></div>
-          <div><span>Est. value</span><b>${usd(claim.amount)}</b></div>
-          <div><span>Claim #</span><b>${fmt.int(claim.index)}</b></div>
-        </div>`;
-      return;
-    }
-    const s = campaign.stats;
-    el.innerHTML = `<div class="fx-stack"><div class="fx-stack-inner">
-        <h2 class="fx-free">GDR <span class="gold">Free</span> Airdrop</h2>
-        <div class="fx-worth">Worth of</div>
-        <div class="fx-value-box">
-          <div class="fx-value gold">${usd(s.nextAllocation)}</div>
-          <div class="fx-value-sub">≈ ${fmt.gdr(s.nextAllocation)} GDR · claim #${fmt.int(s.nextPosition)}</div>
-          <button class="fx-btn-black" data-claim ${claiming ? 'disabled' : ''}>${claiming ? '<span class="spinner"></span> Claiming…' : 'Claim $GDR'}</button>
-        </div>
-      </div></div>`;
-    el.querySelector('[data-claim]').addEventListener('click', confirmClaim);
+    lock(el, 'Claim GDR to see your referrals');
   }
 
   function renderSteps() {
-    document.querySelector('[data-steps]').innerHTML = `<h3 class="fx-panel-title">Earn USDC in 4 Simple Steps</h3>
+    $('[data-steps]').innerHTML = `<h3 class="fx-panel-title">Earn USDC in 4 Simple Steps</h3>
       <ol class="fx-steps">
         <li><span><b>Claim your free GDR</b> to unlock your personal referral link.</span></li>
         <li><span><b>Share your link</b> on Telegram, X, WhatsApp or anywhere your community is.</span></li>
@@ -278,71 +288,102 @@
   }
 
   async function renderDashboard() {
-    await loadMe();
+    if (connected()) {
+      try { me = await api('/referrals/me', { auth: true }); claim = me.claim || null; } catch { me = null; claim = null; }
+    } else { me = null; claim = null; }
     if (!campaign) return;
     renderProfile();
     renderOverview();
     renderReferral();
     renderSummary();
-    renderClaimBox();
     renderSteps();
+    renderClaimBox();
   }
 
-  // ------------------------------------------------------------ claim flow
+  // ------------------------------------------------------------ pay & claim flow
   function confirmClaim() {
     if (claiming || claim || !campaign) return;
+    if (!connected()) { wallet.openPicker(); return; }
     const s = campaign.stats;
+    const fee = claimFee() || 0;
+    const r = activeRound();
     const d = modal.open(`
-      <div class="modal-head"><h3 id="app-modal-title">Confirm your claim</h3><button class="icon-btn" data-close aria-label="Close">${icon('x')}</button></div>
-      <p class="muted small">Review the details, then approve in your wallet.</p>
+      <div class="modal-head"><h3 id="app-modal-title">Claim your GDR</h3><button class="icon-btn" data-close aria-label="Close">${icon('x')}</button></div>
       <div class="claim-amount-box mt-2">
         <div class="claim-amount-label">You will receive</div>
         <div class="claim-amount">${fmt.gdr(s.nextAllocation)}<small>GDR</small></div>
-        <div class="muted xsmall mt-2">≈ ${usd(s.nextAllocation)} at the $${price()} estimate</div>
+        <div class="muted xsmall mt-2">≈ ${usd(s.nextAllocation)} at the $${price()} estimate · claim #${fmt.int(s.nextPosition)}</div>
       </div>
       <dl class="kv">
         <dt>Wallet</dt><dd class="mono">${esc(fmt.short(wallet.address))}</dd>
-        <dt>Network</dt><dd>Solana</dd>
-        <dt>Claim position</dt><dd>#${fmt.int(s.nextPosition)}</dd>
+        <dt>Round</dt><dd>${esc(r ? r.name : '—')}</dd>
+        <dt>Claim fee</dt><dd>${money(fee)}${r && !r.fee ? ' <span class="muted xsmall">(proposed)</span>' : ''}</dd>
         <dt>Network fee</dt><dd>~0.000005 SOL</dd>
       </dl>
-      <div class="claim-actions" style="grid-template-columns:1fr 1fr">
+      <div class="fx-total"><span>Total to pay</span><span>${money(fee)} + network fee</span></div>
+      <div class="claim-actions mt-3" style="grid-template-columns:1fr 1.4fr">
         <button class="btn btn-ghost" data-close>Cancel</button>
-        <button class="btn btn-primary" id="btn-confirm">Confirm &amp; claim</button>
+        <button class="btn btn-primary" id="btn-pay">Pay ${money(fee)} &amp; Claim</button>
       </div>`);
-    d.querySelector('#btn-confirm').addEventListener('click', () => { modal.close(); submitClaim(); });
+    d.querySelector('#btn-pay').addEventListener('click', () => submitClaim(fee));
   }
 
-  async function submitClaim() {
+  const wait = (ms) => new Promise((res) => setTimeout(res, ms));
+  async function submitClaim(fee) {
     claiming = true; renderClaimBox();
+    const d = modal.open(`
+      <div class="modal-head"><h3 id="app-modal-title">Processing your claim</h3></div>
+      <p class="muted small">Keep this window open. ${DEMO ? 'Demo: no real payment is made.' : ''}</p>
+      <ol class="fx-paysteps">
+        <li data-st="1"><span class="s"></span>Approve ${money(fee)} payment in your wallet</li>
+        <li data-st="2"><span class="s"></span>Payment confirmed on Solana</li>
+        <li data-st="3"><span class="s"></span>Sending GDR to your wallet</li>
+      </ol>`);
+    d.querySelector('.modal-head').insertAdjacentHTML('beforeend', '');
+    const step = (n, st) => { const li = d.querySelector(`[data-st="${n}"]`); if (li) li.className = st; };
     try {
-      if (DEMO) await new Promise((r) => setTimeout(r, 1400));
+      step(1, 'run'); await wait(DEMO ? 1200 : 0); step(1, 'done');
+      step(2, 'run'); await wait(DEMO ? 1000 : 0); step(2, 'done');
+      step(3, 'run');
       const out = await api('/claim', { method: 'POST', auth: true, body: { ref: LS.get('gdr_ref') } });
+      await wait(DEMO ? 600 : 0);
+      step(3, 'done');
       LS.del('gdr_ref');
       claim = out.claim;
-      toast(`Claimed ${fmt.gdr(claim.amount)} GDR (${usd(claim.amount)})`, 'ok');
       claiming = false;
+      d.innerHTML = `<div class="fx-success">
+          <div class="big">✓</div>
+          <h3>Claim successful</h3>
+          <p class="muted small">You received <b class="gold">${fmt.gdr(claim.amount)} GDR</b> (≈ ${usd(claim.amount)}). Your referral rewards are now unlocked.</p>
+          <button class="btn btn-primary btn-block mt-2" data-close>View my dashboard</button>
+        </div>`;
+      d.querySelector('[data-close]').addEventListener('click', () => { modal.close(); $('#dashboard').scrollIntoView({ behavior: 'smooth' }); });
+      toast(`Claimed ${fmt.gdr(claim.amount)} GDR`, 'ok');
       await loadCampaign();
       await renderDashboard();
       renderBoards();
     } catch (e) {
       claiming = false; renderClaimBox();
-      toast(e.message || 'Claim failed. Please try again.', 'err');
+      d.innerHTML = `<div class="fx-success">
+          <div class="big" style="background:var(--red-soft);color:var(--red)">!</div>
+          <h3>Claim not completed</h3>
+          <p class="muted small">${esc(e.message || 'Something went wrong.')} You have not been charged.</p>
+          <button class="btn btn-ghost btn-block mt-2" data-close>Close</button>
+        </div>`;
+      d.querySelector('[data-close]').addEventListener('click', () => modal.close());
       if (e.code === 'already_claimed') renderDashboard();
     }
   }
 
-  // ------------------------------------------------------------ view switching
-  function showView() {
-    const connected = wallet.status === 'connected';
-    document.getElementById('view-home').hidden = connected;
-    document.getElementById('view-dash').hidden = !connected;
-    if (connected) renderDashboard();
+  // ------------------------------------------------------------ wiring
+  document.addEventListener('wallet:change', () => {
+    if (wallet.status === 'connecting') return;
+    me = null; claim = null;
+    renderDashboard();
     renderBoards();
-  }
-  document.addEventListener('wallet:change', () => { if (wallet.status !== 'connecting') { me = null; claim = null; showView(); } });
+    if (connected()) setTimeout(() => $('#claim').scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+  });
 
-  // ------------------------------------------------------------ demo tools
   const panel = document.getElementById('demo-panel');
   if (panel) {
     const toggle = panel.querySelector(':scope > button');
@@ -352,14 +393,15 @@
       panel.classList.remove('open');
       if (b.dataset.demo === 'disconnect') { wallet.disconnect(); return; }
       ['phantom', 'solflare', 'backpack', 'demo'].forEach((k) => LS.del(`gdr_sim_${k}`));
-      if (wallet.status === 'connected') await wallet.disconnect();
+      if (connected()) await wallet.disconnect();
       wallet.connect('phantom', true);
     }));
   }
 
   (async () => {
     await loadCampaign();
-    showView();
+    await renderDashboard();
+    renderBoards();
   })();
-  setInterval(() => { if (document.visibilityState === 'visible') loadCampaign(); }, DEMO ? 6000 : 30000);
+  setInterval(() => { if (document.visibilityState === 'visible' && !claiming) loadCampaign(); }, DEMO ? 6000 : 30000);
 })();

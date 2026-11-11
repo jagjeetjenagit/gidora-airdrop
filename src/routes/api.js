@@ -69,6 +69,8 @@ function publicRound(r) {
     id: r.id, name: r.name, status: r.status,
     startsAt: r.startsAt, endsAt: r.endsAt, demoSchedule: !!r.demoSchedule,
     fee: r.fee.confirmed ? { amount: r.fee.amount, currency: r.fee.currency } : null,
+    // demo MVP shows the proposed fee so the pay-to-claim step can be reviewed
+    proposedFeeUsd: config.DEMO_MODE ? r.fee.amount : null,
   };
 }
 
@@ -202,7 +204,7 @@ router.post('/claim', rateLimit({ windowMs: 60_000, max: 10 }), auth, (req, res)
   const { ref } = req.body || {};
   if (ref) store.bindReferral(wallet, String(ref).slice(0, 32)); // ignore errors; claim proceeds
 
-  const out = store.recordClaim(wallet, { round: round.id, demo: true });
+  const out = store.recordClaim(wallet, { round: round.id, demo: true, feeUsd: round.fee.amount });
   if (out.error) return fail(res, 409, out.error, out.error === 'campaign_complete' ? 'The claim allocation has been fully distributed.' : 'This wallet has already claimed.');
   res.json({ claim: out.claim, demo: true });
 });

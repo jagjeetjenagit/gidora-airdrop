@@ -66,13 +66,13 @@ function recentClaims(n) {
   return Object.values(state.claims).sort((a, b) => (a.at < b.at ? 1 : -1)).slice(0, n);
 }
 
-function recordClaim(wallet, { round, demo }) {
+function recordClaim(wallet, { round, demo, feeUsd = null }) {
   if (state.claims[wallet]) return { error: 'already_claimed', claim: state.claims[wallet] };
   const index = claimCount() + 1; // atomic within this single-threaded process
   if (index > curve.N) return { error: 'campaign_complete' };
   const amount = +curve.allocationAt(index).toFixed(6);
   const claim = {
-    wallet, index, amount, round, demo: !!demo,
+    wallet, index, amount, round, demo: !!demo, feeUsd,
     at: new Date().toISOString(),
     signature: demo ? null : undefined, // real tx signature comes from the program
   };
