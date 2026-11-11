@@ -186,10 +186,10 @@
       try {
         let address, signature, demo = false;
         if (simulated || id === 'demo') {
-          // MVP demo: a stable, realistic-looking address per wallet type
-          const key = `gdr_sim_${id}`;
-          address = LS.get(key);
-          if (!address) { address = b58encode(crypto.getRandomValues(new Uint8Array(32))); LS.set(key, address); }
+          // MVP demo: every new connection is a fresh, never-claimed wallet,
+          // so connecting always lands on the Unclaimed (locked) dashboard.
+          // (A page refresh keeps the same session/wallet.)
+          address = b58encode(crypto.getRandomValues(new Uint8Array(32)));
           demo = true;
           await new Promise((r) => setTimeout(r, 650));
         } else {

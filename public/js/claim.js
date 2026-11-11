@@ -403,7 +403,6 @@
     panel.querySelectorAll('[data-demo]').forEach((b) => b.addEventListener('click', async () => {
       panel.classList.remove('open');
       if (b.dataset.demo === 'disconnect') { wallet.disconnect(); return; }
-      ['phantom', 'solflare', 'backpack', 'demo'].forEach((k) => LS.del(`gdr_sim_${k}`));
       if (connected()) await wallet.disconnect();
       wallet.connect('phantom', true);
     }));
