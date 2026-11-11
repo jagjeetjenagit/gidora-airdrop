@@ -323,3 +323,11 @@ body:has(.demo-bar) .main-nav { top: calc(100% + 6px); }
 .fx-total { display: flex; justify-content: space-between; padding: 12px 0 0; margin-top: 4px; border-top: 1px solid #2a2a2a; font-weight: 700; }
 .fx-success { text-align: center; padding: 8px 0 4px; }
 .fx-success .big { width: 64px; height: 64px; margin: 6px auto 12px; border-radius: 50%; display: grid; place-items: center; background: var(--green-soft); color: var(--green); font-size: 2rem; font-weight: 800; animation: burst .5s ease-out; }
+
+/* guests (no wallet): hide the personal dashboard column, show public blocks like the Figma homepage */
+.fx-dash.is-guest { grid-template-columns: minmax(0, 1fr); }
+.fx-dash.is-guest > .fx-col:first-child { display: none; }
+.fx-dash.is-guest > .fx-col:last-child { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+.fx-dash.is-guest [data-board] { order: -1; }
+.fx-dash.is-guest [data-steps] { grid-column: 1 / -1; }
+@media (max-width: 960px) { .fx-dash.is-guest > .fx-col:last-child { grid-template-columns: minmax(0, 1fr); } }

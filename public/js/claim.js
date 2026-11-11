@@ -289,6 +289,8 @@
       try { me = await api('/referrals/me', { auth: true }); claim = me.claim || null; } catch { me = null; claim = null; }
     } else { me = null; claim = null; }
     if (!campaign) return;
+    // personal dashboard only for connected wallets
+    document.getElementById('dashboard').classList.toggle('is-guest', !connected());
     renderProfile();
     renderOverview();
     renderReferral();
