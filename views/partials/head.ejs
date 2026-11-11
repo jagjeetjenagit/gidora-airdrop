@@ -16,6 +16,17 @@
 </head>
 <body data-page="<%= nav %>" data-demo="<%= site.demo %>" data-base="<%= base %>" data-static="<%= isStatic %>">
 <%- include('icons') %>
+<div class="preloader" id="preloader" aria-hidden="true">
+  <div class="pl-inner">
+    <div class="pl-mark">
+      <svg class="pl-ring" viewBox="0 0 120 120"><circle cx="60" cy="60" r="54" class="pl-track"/><circle cx="60" cy="60" r="54" class="pl-arc"/></svg>
+      <img src="<%= base %>img/logo.svg" alt="" width="64" height="64">
+    </div>
+    <div class="pl-word">GIDORA</div>
+    <div class="pl-bar"><span></span></div>
+    <div class="pl-tag"><%= site.brand.tagline %></div>
+  </div>
+</div>
 <a class="skip-link" href="#main">Skip to content</a>
 
 <% if (site.demo) { %>

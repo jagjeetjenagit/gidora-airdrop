@@ -2,6 +2,23 @@
 (function () {
   'use strict';
 
+  // ------------------------------------------------------------ preloader
+  (function preloader() {
+    const el = document.getElementById('preloader');
+    if (!el) return;
+    let seen = false;
+    try { seen = sessionStorage.getItem('gdr_pl') === '1'; sessionStorage.setItem('gdr_pl', '1'); } catch { /* storage unavailable */ }
+    if (seen) { el.classList.add('quick'); }
+    const start = performance.now();
+    const minMs = seen ? 250 : 1400; // full intro once per session, quick after
+    const hide = () => {
+      const wait = Math.max(0, minMs - (performance.now() - start));
+      setTimeout(() => { el.classList.add('done'); setTimeout(() => el.remove(), 600); }, wait);
+    };
+    if (document.readyState === 'complete') hide(); else window.addEventListener('load', hide, { once: true });
+    setTimeout(hide, 4000); // never block on slow assets
+  })();
+
   const DEMO = document.body.dataset.demo === 'true';
   const BASE = document.body.dataset.base || '/';
   const STATIC = document.body.dataset.static === 'true' && !!window.GDRStaticApi;
