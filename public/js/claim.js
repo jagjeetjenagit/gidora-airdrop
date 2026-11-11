@@ -13,6 +13,7 @@
   let claim = null;       // claim record (when claimed)
   let boardPeriod = 'all';
   let claiming = false;
+  let pendingClaim = false; // user pressed Claim before connecting
   let lastTiles = '';
 
   const connected = () => wallet.status === 'connected';
@@ -94,9 +95,7 @@
       return;
     }
 
-    const btn = !connected()
-      ? '<button class="fx-btn-black" data-action="connect">Connect to Claim</button>'
-      : `<button class="fx-btn-black" data-claim ${claiming ? 'disabled' : ''}>${claiming ? '<span class="spinner"></span> Processing…' : 'Claim $GDR'}</button>`;
+    const btn = `<button class="fx-btn-black" data-claim ${claiming ? 'disabled' : ''}>${claiming ? '<span class="spinner"></span> Processing…' : 'Claim $GDR'}</button>`;
     el.innerHTML = `<div class="fx-stack"><div class="fx-stack-inner">
         <h2 class="fx-free">GDR <span class="gold">Free</span> Airdrop</h2>
         <div class="fx-worth">Worth of</div>
@@ -154,9 +153,7 @@
   function lock(el, message) {
     el.classList.toggle('fx-locked', !claim);
     if (claim) return;
-    const btn = connected()
-      ? '<button class="fx-btn-black" data-lock-claim>Claim</button>'
-      : '<button class="fx-btn-black" data-action="connect">Connect Wallet</button>';
+    const btn = '<button class="fx-btn-black" data-lock-claim>Claim</button>';
     el.insertAdjacentHTML('beforeend', `<div class="fx-lock"><div class="lk">${icon('lock')}</div><p>${esc(message)}</p>${btn}</div>`);
     const b = el.querySelector('[data-lock-claim]');
     if (b) b.addEventListener('click', confirmClaim);
@@ -303,8 +300,8 @@
   // ------------------------------------------------------------ pay & claim flow
   function confirmClaim() {
     if (claiming || claim || !campaign) return;
-    if (!connected()) { wallet.openPicker(); return; }
     const s = campaign.stats;
+    const isConn = connected();
     const fee = claimFee() || 0;
     const r = activeRound();
     const d = modal.open(`
@@ -315,7 +312,7 @@
         <div class="muted xsmall mt-2">≈ ${usd(s.nextAllocation)} at the $${price()} estimate · claim #${fmt.int(s.nextPosition)}</div>
       </div>
       <dl class="kv">
-        <dt>Wallet</dt><dd class="mono">${esc(fmt.short(wallet.address))}</dd>
+        <dt>Wallet</dt><dd class="mono">${isConn ? esc(fmt.short(wallet.address)) : '<span class="muted">Not connected</span>'}</dd>
         <dt>Round</dt><dd>${esc(r ? r.name : '—')}</dd>
         <dt>Claim fee</dt><dd>${money(fee)}${r && !r.fee ? ' <span class="muted xsmall">(proposed)</span>' : ''}</dd>
         <dt>Network fee</dt><dd>~0.000005 SOL</dd>
@@ -323,9 +320,12 @@
       <div class="fx-total"><span>Total to pay</span><span>${money(fee)} + network fee</span></div>
       <div class="claim-actions mt-3" style="grid-template-columns:1fr 1.4fr">
         <button class="btn btn-ghost" data-close>Cancel</button>
-        <button class="btn btn-primary" id="btn-pay">Pay ${money(fee)} &amp; Claim</button>
+        <button class="btn btn-primary" id="btn-pay">${isConn ? `Pay ${money(fee)} &amp; Claim` : `Connect Wallet &amp; Pay ${money(fee)}`}</button>
       </div>`);
-    d.querySelector('#btn-pay').addEventListener('click', () => submitClaim(fee));
+    d.querySelector('#btn-pay').addEventListener('click', () => {
+      if (!connected()) { pendingClaim = true; modal.close(); wallet.openPicker(); return; }
+      submitClaim(fee);
+    });
   }
 
   const wait = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -379,9 +379,17 @@
   document.addEventListener('wallet:change', () => {
     if (wallet.status === 'connecting') return;
     me = null; claim = null;
-    renderDashboard();
     renderBoards();
-    if (connected()) setTimeout(() => $('#claim').scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    renderDashboard().then(() => {
+      // resume the claim the user started before connecting
+      if (pendingClaim && connected()) { pendingClaim = false; if (!claim) confirmClaim(); }
+      else if (!connected()) pendingClaim = false;
+    });
+  });
+
+  // closing the wallet picker without connecting cancels the pending claim
+  document.getElementById('wallet-modal').addEventListener('close', () => {
+    setTimeout(() => { if (wallet.status === 'disconnected') pendingClaim = false; }, 0);
   });
 
   const panel = document.getElementById('demo-panel');
