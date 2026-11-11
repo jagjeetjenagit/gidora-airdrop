@@ -85,17 +85,19 @@
     return { referral: st.referrals[referee] };
   }
 
-  let demoBoard = null;
-  function leaderboard() {
-    if (!demoBoard) {
-      demoBoard = [];
+  const demoBoards = {};
+  const PERIOD_SCALE = { all: 1, week: 0.16, lastweek: 0.21 };
+  function leaderboard(period = 'all') {
+    if (!demoBoards[period]) {
+      const k = PERIOD_SCALE[period] || 1;
+      demoBoards[period] = [];
       for (let i = 0; i < 240; i++) {
-        const b = bytesFrom('demo-wallet-' + i, 32);
+        const b = bytesFrom('demo-wallet-' + i + (period === 'all' ? '' : ':' + period), 32);
         const r = ((b[0] << 24 | b[1] << 16 | b[2] << 8 | b[3]) >>> 0) / 0xffffffff;
-        demoBoard.push({ wallet: b58encode(b), verified: Math.max(1, Math.floor(1800 * Math.pow(r, 6) + 40 * r)), status: b[5] % 13 === 0 ? 'review' : 'verified', sample: true });
+        demoBoards[period].push({ wallet: b58encode(b), verified: Math.max(1, Math.floor((1800 * Math.pow(r, 6) + 40 * r) * k)), status: b[5] % 13 === 0 ? 'review' : 'verified', sample: true });
       }
     }
-    const map = new Map(demoBoard.map((r) => [r.wallet, { ...r }]));
+    const map = new Map(demoBoards[period].map((r) => [r.wallet, { ...r }]));
     for (const ref of Object.values(st.referrals)) {
       if (ref.status !== 'verified') continue;
       const row = map.get(ref.referrer) || { wallet: ref.referrer, verified: 0, status: 'verified', sample: false };
@@ -244,7 +246,8 @@
       const size = Math.min(50, Math.max(5, parseInt(q.get('size'), 10) || 20));
       const term = (q.get('q') || '').trim().toLowerCase();
       const wallet = q.get('wallet') || '';
-      const all = leaderboard();
+      const period = ['all', 'week', 'lastweek'].includes(q.get('period')) ? q.get('period') : 'all';
+      const all = leaderboard(period);
       const filtered = term ? all.filter((r) => r.wallet.toLowerCase().includes(term)) : all;
       const toRow = (r) => ({ rank: r.rank, wallet: r.wallet, display: short(r.wallet), verified: r.verified, status: r.status, sample: r.sample });
       const me = wallet ? all.find((r) => r.wallet === wallet) : null;

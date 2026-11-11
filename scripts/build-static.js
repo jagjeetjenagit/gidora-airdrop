@@ -54,6 +54,7 @@ const pages = [
     referral: { ratePercent: config.referral.ratePercent, confirmed: config.referral.confirmed, levels: config.referral.levels },
     kolPool: config.kolPool,
     demo: config.demo,
+    estPriceUsd: config.token.estPriceUsd,
     curve: { N: curve.N, MAX: curve.MAX, MIN: curve.MIN, BUDGET: curve.BUDGET, K: curve.K },
     curveMeta: { ...curve.meta, first: curve.MAX, last: curve.MIN, positions: curve.N, budget: curve.BUDGET },
   };

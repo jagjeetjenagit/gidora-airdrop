@@ -29,9 +29,9 @@ module.exports = {
   demo: DEMO_MODE ? {
     scheduleStart: '2026-11-01T00:00:00Z', // rolling 8-round demo calendar
     roundDays: 14,
-    epoch: '2026-11-11T00:00:00Z',
-    baseClaims: 1_284_516,
-    msPerClaim: 3000,
+    epoch: '2026-11-11T12:00:00Z',
+    baseClaims: 98_678, // matches the Figma counter tiles
+    msPerClaim: 20000, // ~4,300 simulated claims/day
   } : null,
   brand: {
     name: 'GIDORA',
@@ -48,6 +48,8 @@ module.exports = {
     claimAllocation: 10_000_000,
     mint: process.env.GDR_MINT || null, // publish once deployed
     programId: process.env.CLAIM_PROGRAM_ID || null,
+    // Estimated reference value used for USD display (client-provided estimate, not a market price)
+    estPriceUsd: Number(process.env.GDR_EST_PRICE_USD || 22),
   },
   rounds,
   minimumBalance: {
@@ -68,6 +70,17 @@ module.exports = {
     knownTiers: [
       { referrals: 100, poolUsdc: 10_000 },
       { referrals: 200, poolUsdc: 20_000 },
+      { referrals: 50_000, poolUsdc: 3_000_000 },
+    ],
+    // Demo tier schedule (known tiers + illustrative intermediate tiers summing to the 6.9M cap)
+    demoTiers: [
+      { referrals: 100, poolUsdc: 10_000 },
+      { referrals: 200, poolUsdc: 20_000 },
+      { referrals: 500, poolUsdc: 50_000 },
+      { referrals: 1_000, poolUsdc: 100_000 },
+      { referrals: 5_000, poolUsdc: 500_000 },
+      { referrals: 10_000, poolUsdc: 1_000_000 },
+      { referrals: 25_000, poolUsdc: 2_220_000 },
       { referrals: 50_000, poolUsdc: 3_000_000 },
     ],
   },

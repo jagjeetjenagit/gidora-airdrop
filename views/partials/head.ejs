@@ -11,8 +11,9 @@
   <link rel="icon" href="<%= base %>img/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<%= base %>css/styles.css">
+  <link rel="stylesheet" href="<%= base %>css/figma.css">
 </head>
 <body data-page="<%= nav %>" data-demo="<%= site.demo %>" data-base="<%= base %>" data-static="<%= isStatic %>">
 <%- include('icons') %>
@@ -42,17 +43,19 @@
       <img class="logo-full" src="<%= base %>img/logo.svg" alt="GIDORA" width="134" height="35">
     </a>
 
+    <form class="fx-search" action="<%= base %>leaderboard/" method="get" role="search">
+      <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
+      <input name="q" type="search" placeholder="Search wallet address" aria-label="Search wallet address" autocomplete="off" spellcheck="false">
+    </form>
+
     <nav class="main-nav" id="main-nav" aria-label="Primary">
       <a href="<%= base %>" class="<%= nav === 'claim' ? 'active' : '' %>" <%- nav === 'claim' ? 'aria-current="page"' : '' %>>Claim Airdrop</a>
       <a href="<%= base %>leaderboard/" class="<%= nav === 'leaderboard' ? 'active' : '' %>" <%- nav === 'leaderboard' ? 'aria-current="page"' : '' %>>Leaderboard</a>
       <a href="<%= base %>rewards/" class="<%= nav === 'rewards' ? 'active' : '' %>" <%- nav === 'rewards' ? 'aria-current="page"' : '' %>>Rewards</a>
-      <a href="<%= base %>#how-it-works">How It Works</a>
       <a href="<%= base %>#faq">FAQ</a>
     </nav>
 
     <div class="header-actions">
-      <span class="net-pill" title="Network"><span class="dot" aria-hidden="true"></span><svg class="i" aria-hidden="true"><use href="#i-solana"/></svg>Solana</span>
-      <a href="<%= base %>#claim" class="btn btn-ghost btn-sm mobile-claim">Claim</a>
       <div class="wallet-slot" data-wallet-slot>
         <button class="btn btn-primary btn-sm" data-action="connect">
           <svg class="i" aria-hidden="true"><use href="#i-wallet"/></svg>
@@ -65,10 +68,5 @@
     </div>
   </div>
 </header>
-
-<div class="ticker" aria-label="Recent claims" id="ticker">
-  <span class="ticker-label"><span class="live" aria-hidden="true"></span>Live claims</span>
-  <div class="ticker-track" id="ticker-track" aria-live="off"></div>
-</div>
 
 <main id="main">

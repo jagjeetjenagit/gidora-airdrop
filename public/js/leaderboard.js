@@ -5,7 +5,7 @@
   const $ = (id) => document.getElementById(id);
 
   let page = 1;
-  let q = '';
+  let q = (new URLSearchParams(location.search).get('q') || '').trim().slice(0, 64);
   let tab = 'global';
   let data = null;
   const SIZE = 20;
@@ -134,6 +134,7 @@
     t = setTimeout(() => { q = e.target.value.trim(); page = 1; load(); }, 250);
   });
 
+  if (q) $('lb-search').value = q;
   document.addEventListener('wallet:change', () => { if (wallet.status !== 'connecting') load(); });
   load();
   setInterval(() => { if (document.visibilityState === 'visible' && !q) load(); }, 60_000);

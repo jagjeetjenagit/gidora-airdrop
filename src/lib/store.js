@@ -111,25 +111,27 @@ function referralStats(wallet) {
 }
 
 // ---------- leaderboard ----------
-let demoBoard = null;
-function demoLeaderboard() {
-  if (demoBoard) return demoBoard;
+const demoBoards = {};
+const PERIOD_SCALE = { all: 1, week: 0.16, lastweek: 0.21 };
+function demoLeaderboard(period = 'all') {
+  if (demoBoards[period]) return demoBoards[period];
   const rows = [];
+  const k = PERIOD_SCALE[period] || 1;
   for (let i = 0; i < 240; i++) {
-    const h = hash('demo-wallet-' + i);
+    const h = hash('demo-wallet-' + i + (period === 'all' ? '' : ':' + period));
     const wallet = base58Encode(h);
     // long-tail distribution, deterministic
     const r = h.readUInt32BE(0) / 0xffffffff;
-    const verified = Math.max(1, Math.floor(1800 * Math.pow(r, 6) + 40 * r));
+    const verified = Math.max(1, Math.floor((1800 * Math.pow(r, 6) + 40 * r) * k));
     rows.push({ wallet, verified, status: h[5] % 13 === 0 ? 'review' : 'verified', sample: true });
   }
-  demoBoard = rows;
+  demoBoards[period] = rows;
   return rows;
 }
 
-function leaderboard() {
+function leaderboard(period = 'all') {
   const map = new Map();
-  if (config.DEMO_MODE) for (const r of demoLeaderboard()) map.set(r.wallet, { ...r });
+  if (config.DEMO_MODE) for (const r of demoLeaderboard(period)) map.set(r.wallet, { ...r });
   for (const [, ref] of Object.entries(state.referrals)) {
     if (ref.status !== 'verified') continue;
     const row = map.get(ref.referrer) || { wallet: ref.referrer, verified: 0, status: 'verified', sample: false };
@@ -144,7 +146,7 @@ function leaderboard() {
   return rows;
 }
 
-function _reset() { state = { claims: {}, referrals: {}, codes: {} }; demoBoard = null; }
+function _reset() { state = { claims: {}, referrals: {}, codes: {} }; for (const k in demoBoards) delete demoBoards[k]; }
 
 load();
 

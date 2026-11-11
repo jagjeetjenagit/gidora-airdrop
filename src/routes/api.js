@@ -270,8 +270,9 @@ router.get('/leaderboard', (req, res) => {
   const size = Math.min(50, Math.max(5, parseInt(req.query.size, 10) || 20));
   const q = String(req.query.q || '').trim();
   const wallet = String(req.query.wallet || '');
+  const period = ['all', 'week', 'lastweek'].includes(req.query.period) ? req.query.period : 'all';
 
-  const all = store.leaderboard();
+  const all = store.leaderboard(period);
   const filtered = q ? all.filter((r) => r.wallet.toLowerCase().includes(q.toLowerCase())) : all;
   const start = (page - 1) * size;
   const toRow = (r) => ({

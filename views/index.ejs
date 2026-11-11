@@ -1,231 +1,72 @@
 <%- include('partials/head') %>
 
-<!-- ============ HERO ============ -->
-<section class="hero">
-  <div class="hero-glow" aria-hidden="true"></div>
-  <div class="container hero-grid">
-    <div class="hero-copy">
-      <span class="pill pill-live" id="round-pill"><span class="dot"></span><span>Loading campaign…</span></span>
-      <h1>Claim Your <span class="gold">GDR</span></h1>
-      <p class="tagline"><%= campaign.brand.tagline %></p>
-      <p class="lead">
-        Eligible unique Solana wallets can claim GDR from the
-        <strong>10,000,000 GDR</strong> early-adoption allocation. Earlier claims receive more.
-      </p>
-      <div class="cta-row">
-        <a href="#claim" class="btn btn-primary btn-lg" data-action="connect-or-scroll">
-          <svg class="i" aria-hidden="true"><use href="#i-wallet"/></svg> <span data-cta-label>Connect Wallet</span>
-        </a>
-        <a href="#how-it-works" class="btn btn-ghost btn-lg">How It Works</a>
-      </div>
-      <ul class="trust-row" aria-label="Campaign facts">
-        <li><svg class="i" aria-hidden="true"><use href="#i-check-circle"/></svg> One claim per wallet</li>
-        <li><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg> Non-custodial</li>
-        <li><svg class="i" aria-hidden="true"><use href="#i-lock"/></svg> We never ask for your seed phrase</li>
-      </ul>
-
-      <!-- Round countdown -->
-      <div class="countdown-card" id="countdown-card">
-        <div class="cd-head">
-          <div class="cd-title" id="cd-title">Round —</div>
-          <span class="badge badge-muted" id="cd-badge">—</span>
-        </div>
-        <div class="countdown" role="timer" aria-live="off" id="countdown">
-          <div class="cd-unit"><span class="cd-num" data-cd="d">00</span><span class="cd-lbl">Days</span></div>
-          <div class="cd-unit"><span class="cd-num" data-cd="h">00</span><span class="cd-lbl">Hours</span></div>
-          <div class="cd-unit"><span class="cd-num" data-cd="m">00</span><span class="cd-lbl">Mins</span></div>
-          <div class="cd-unit"><span class="cd-num" data-cd="s">00</span><span class="cd-lbl">Secs</span></div>
-        </div>
-        <div class="cd-bar" aria-hidden="true"><span id="cd-bar"></span></div>
-        <div class="cd-foot"><span id="cd-start">—</span><span id="cd-end">—</span></div>
-      </div>
+<!-- =====================================================================
+     HOME (not connected) · Figma frame "Homepage"
+     ===================================================================== -->
+<div id="view-home" class="fx-view">
+  <section class="fx-hero container">
+    <div class="fx-hero-copy">
+      <div class="fx-big gold" id="h-pool">$220,000,000</div>
+      <div class="fx-airdropped">Airdropped <span>across</span></div>
+      <div class="fx-big gold" id="h-wallets">10,000,000</div>
+      <div class="fx-wallets">WALLETS</div>
+      <p class="fx-tag">Limited like Bitcoin,<br>Claimable by Everyone.</p>
+      <button class="fx-btn-gold" data-action="connect">Get Early Access</button>
+      <p class="fx-fine">GDR ESTIMATED AT $<span data-price>22</span> · REFERENCE VALUE, NOT A GUARANTEED PRICE</p>
     </div>
 
-    <div>
-      <div class="counter-block" aria-live="polite" style="margin:0 0 18px">
-        <div class="counter-label">Wallets claimed</div>
-        <div class="counter" id="claim-counter" aria-label="Wallets claimed"></div>
-      </div>
-      <!-- Claim card: rendered by /js/claim.js -->
-      <div class="claim-wrap" id="claim">
-        <div class="claim-card" id="claim-card" aria-live="polite">
-          <div class="skeleton" style="height:22px;width:50%"></div>
-          <div class="skeleton mt-3" style="height:110px"></div>
-          <div class="skeleton mt-3" style="height:48px"></div>
+    <div class="fx-panel fx-claim-panel">
+      <div class="fx-rounds" data-rounds></div>
+      <div class="fx-tiles" data-tiles aria-label="Wallets claimed"></div>
+      <div class="fx-stack">
+        <div class="fx-stack-inner">
+          <h2 class="fx-free">GDR <span class="gold">Free</span> Airdrop</h2>
+          <div class="fx-worth">Worth of</div>
+          <div class="fx-value-box">
+            <div class="fx-value gold" data-next-usd>$0.00</div>
+            <div class="fx-value-sub" data-next-gdr>≈ 0 GDR</div>
+            <button class="fx-btn-black" data-action="connect">Connect to Claim</button>
+          </div>
         </div>
       </div>
+      <div class="fx-countdown" data-countdown></div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- ============ LIVE STATS ============ -->
-<section class="section-tight" aria-labelledby="progress-title">
-  <div class="container">
-    <h2 id="progress-title" class="sr-only">Campaign statistics</h2>
-    <div class="stats-strip">
-      <div class="stat"><span class="stat-label">GDR distributed</span><span class="stat-value" id="s-distributed">—</span><span class="delta up" id="d-distributed"></span></div>
-      <div class="stat"><span class="stat-label">GDR remaining</span><span class="stat-value" id="s-remaining">—</span><span class="delta down" id="d-remaining"></span></div>
-      <div class="stat"><span class="stat-label">Wallets claimed</span><span class="stat-value" id="s-claims">—</span><span class="delta up" id="d-claims"></span></div>
-      <div class="stat"><span class="stat-label">Next claim receives</span><span class="stat-value gold" id="s-next">—</span><span class="stat-unit">GDR · estimate</span></div>
-      <div class="stat"><span class="stat-label">Active round</span><span class="stat-value" id="s-round">—</span><span class="stat-unit" id="s-round-sub">—</span></div>
-      <div class="progress-wrap">
-        <div class="progress-meta"><span>Claim allocation distributed</span><span id="stats-updated"></span></div>
-        <div class="progress-bar" role="progressbar" aria-label="Claim allocation distributed" aria-valuemin="0" aria-valuemax="100" id="progress-bar">
-          <span class="progress-fill" id="progress-fill"></span>
-        </div>
+  <section class="container fx-two">
+    <div class="fx-panel" data-board="home"></div>
+    <div class="fx-panel" data-kol></div>
+  </section>
+</div>
+
+<!-- =====================================================================
+     DASHBOARD (connected) · Figma frames "Unclaimed" + "Claimed"
+     ===================================================================== -->
+<div id="view-dash" class="fx-view" hidden>
+  <section class="container fx-dash">
+    <div class="fx-col">
+      <div class="fx-profile" data-profile></div>
+      <div class="fx-panel fx-overview" data-overview></div>
+      <div class="fx-panel fx-referral" data-referral></div>
+      <div class="fx-panel" data-summary></div>
+    </div>
+
+    <div class="fx-col">
+      <div class="fx-panel fx-claim-panel">
+        <div class="fx-rounds" data-rounds></div>
+        <div class="fx-tiles" data-tiles aria-label="Wallets claimed"></div>
+        <div data-claimbox></div>
+        <div class="fx-countdown" data-countdown></div>
       </div>
+      <div class="fx-panel" data-kol></div>
+      <div class="fx-panel" data-steps></div>
+      <div class="fx-panel" data-board="dash"></div>
     </div>
-  </div>
-</section>
-
-<!-- ============ ROUNDS ============ -->
-<section class="section" id="rounds" aria-labelledby="rounds-title">
-  <div class="container">
-    <div class="section-head">
-      <span class="eyebrow">Eight-round campaign</span>
-      <h2 id="rounds-title">Rounds are access windows, not reward tiers</h2>
-      <p class="muted">Claims open in eight rounds. Every claim takes the next position on <em>one</em> continuous allocation curve. Starting a new round does not reset or boost rewards.</p>
-    </div>
-    <ol class="rounds" id="rounds-list" aria-label="Claim rounds"></ol>
-    <p class="muted xsmall mt-2"><svg class="i i-inline" aria-hidden="true"><use href="#i-info"/></svg> Demo schedule shown. Official round dates and any claim fees will be published before launch.</p>
-  </div>
-</section>
-
-<!-- ============ CURVE ============ -->
-<section class="section section-alt" id="curve" aria-labelledby="curve-title">
-  <div class="container curve-grid">
-    <div>
-      <span class="eyebrow">Progressive allocation</span>
-      <h2 id="curve-title">Earlier claims receive more GDR</h2>
-      <p class="muted">Your allocation is set by your global claim position. Claim #1 receives <strong>21 GDR</strong>. The final position (#10,000,000) receives <strong>0.21 GDR</strong>. Amounts decrease smoothly in between, and the total adds up to exactly the 10,000,000 GDR allocation.</p>
-
-      <div class="calc card card-inner mt-3">
-        <label for="calc-pos" class="small strong">Estimate the allocation for any claim position</label>
-        <div class="calc-row">
-          <input id="calc-pos" type="number" inputmode="numeric" min="1" max="10000000" value="1000000" class="input">
-          <div class="calc-out"><span id="calc-out">—</span> <span class="muted">GDR</span></div>
-        </div>
-        <input id="calc-range" type="range" min="1" max="10000000" step="1" value="1000000" aria-label="Claim position slider">
-      </div>
-
-      <div class="note mt-3">
-        <svg class="i" aria-hidden="true"><use href="#i-info"/></svg>
-        <p class="small"><strong>Illustrative model.</strong> <span id="curve-formula"></span>. The final on-chain formula is published with the audited claim program. The amount you sign for is always shown before you approve.</p>
-      </div>
-    </div>
-    <figure class="card chart-card">
-      <figcaption class="chart-cap">
-        <span class="small strong">GDR per claim vs. claim position</span>
-        <span class="legend"><span class="sw sw-gold"></span>Allocation curve <span class="sw sw-white"></span>Current position</span>
-      </figcaption>
-      <div id="curve-chart" class="chart" role="img" aria-label="Line chart: allocation decreases from 21 GDR at claim 1 to 0.21 GDR at claim 10,000,000."></div>
-    </figure>
-  </div>
-</section>
-
-<!-- ============ HOW IT WORKS ============ -->
-<section class="section" id="how-it-works" aria-labelledby="how-title">
-  <div class="container">
-    <div class="section-head center">
-      <span class="eyebrow">How it works</span>
-      <h2 id="how-title">Claim in four simple steps</h2>
-    </div>
-    <ol class="steps">
-      <li class="step card">
-        <span class="step-num">1</span>
-        <h3>Connect your wallet</h3>
-        <p class="muted small">Use Phantom, Solflare or Backpack. Connecting only shares your public address.</p>
-      </li>
-      <li class="step card">
-        <span class="step-num">2</span>
-        <h3>Check eligibility</h3>
-        <p class="muted small">We check claim status, the active round and campaign rules for your wallet.</p>
-      </li>
-      <li class="step card">
-        <span class="step-num">3</span>
-        <h3>Review &amp; approve</h3>
-        <p class="muted small">See the exact GDR amount, network fee and any claim fee before you approve in your wallet.</p>
-      </li>
-      <li class="step card">
-        <span class="step-num">4</span>
-        <h3>Receive GDR &amp; share</h3>
-        <p class="muted small">GDR arrives in the same transaction. Then share your referral link to climb the leaderboard.</p>
-      </li>
-    </ol>
-    <div class="info-strip mt-4">
-      <div><svg class="i" aria-hidden="true"><use href="#i-solana"/></svg><p class="small"><strong>SOL is required for Solana network fees.</strong> GDR cannot pay gas, and claiming is not a token purchase.</p></div>
-      <div><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg><p class="small"><strong>One claim per wallet.</strong> Duplicate, self-referred and automated claims are excluded.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ REFERRAL ============ -->
-<section class="section section-alt" id="referral" aria-labelledby="ref-title">
-  <div class="container ref-grid">
-    <div>
-      <span class="eyebrow">Referrals</span>
-      <h2 id="ref-title">Invite friends. Climb the leaderboard.</h2>
-      <p class="muted">Share your personal link. A referral counts only after the referred wallet completes a verified claim. Clicks and sign-ups alone don't count.</p>
-      <ul class="checklist">
-        <li><svg class="i"><use href="#i-check"/></svg><span>One level only: you earn from people you refer directly, never from their referrals</span></li>
-        <li><svg class="i"><use href="#i-check"/></svg><span>Self-referrals and duplicate wallets are excluded</span></li>
-        <li><svg class="i"><use href="#i-check"/></svg><span>Verified referrals rank you on the Airdrop Leaderboard</span></li>
-      </ul>
-      <p class="badge-row"><span class="badge badge-warn">Proposed / subject to final terms</span> <span class="muted small">Direct referral reward: 25% of an eligible fee. The fee base, asset and payout timing will be published before any reward is earned.</span></p>
-    </div>
-    <div class="card ref-card" id="home-ref-card"></div>
-  </div>
-</section>
-
-<!-- ============ KOL POOL ============ -->
-<section class="section" id="kol" aria-labelledby="kol-title">
-  <div class="container">
-    <div class="section-head">
-      <span class="eyebrow">KOL Pool Referral Rewards</span>
-      <h2 id="kol-title">Milestone pools for top promoters</h2>
-      <p class="muted">A separate USDC incentive for participants who reach verified referral milestones. It is <strong>not</strong> the same as the direct referral reward.</p>
-    </div>
-
-    <div class="kol-grid">
-      <div class="card">
-        <div class="kol-cap">
-          <span class="muted small">Proposed aggregate cap</span>
-          <span class="kol-cap-value">6,900,000 <small>USDC</small></span>
-          <span class="badge badge-warn">Not yet funded · subject to final terms</span>
-        </div>
-        <table class="mini-table mt-3">
-          <caption class="sr-only">Known example tiers</caption>
-          <thead><tr><th scope="col">Verified referrals</th><th scope="col">Tier pool</th></tr></thead>
-          <tbody>
-            <% campaign.kolPool.knownTiers.forEach(function (t) { %>
-              <tr><td><%= t.referrals.toLocaleString('en-US') %>+</td><td><%= t.poolUsdc.toLocaleString('en-US') %> USDC</td></tr>
-            <% }) %>
-            <tr><td colspan="2" class="muted xsmall">Example tiers only. The full tier schedule will be published before the campaign starts.</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="card">
-        <h3 class="h5">How the pools work</h3>
-        <ul class="checklist">
-          <li><svg class="i"><use href="#i-check"/></svg><span>Each tier's pool is shared <strong>equally</strong> among everyone who reaches it</span></li>
-          <li><svg class="i"><use href="#i-check"/></svg><span><strong>Non-cumulative:</strong> you share only in your highest tier, not every tier below it</span></li>
-          <li><svg class="i"><use href="#i-check"/></svg><span>Paid in USDC only after Round 8, final verification and funding</span></li>
-        </ul>
-        <div class="example small mt-2">
-          <strong>Example:</strong> a 10,000 USDC pool shared by 20 eligible participants = 500 USDC each.
-        </div>
-        <ol class="pipeline mt-3" aria-label="KOL pool status">
-          <% ['Accumulating','Verification','Finalized','Funded','Distribution','Completed'].forEach(function (s, i) { %>
-            <li class="<%= i === 0 ? 'current' : '' %>"><span><%= s %></span></li>
-          <% }) %>
-        </ol>
-      </div>
-    </div>
-  </div>
-</section>
+  </section>
+</div>
 
 <!-- ============ FAQ ============ -->
-<section class="section section-alt" id="faq" aria-labelledby="faq-title">
+<section class="section" id="faq" aria-labelledby="faq-title">
   <div class="container narrow">
     <div class="section-head center">
       <span class="eyebrow">FAQ</span>
@@ -234,35 +75,27 @@
     <div class="faq">
       <details>
         <summary>What is GDR?</summary>
-        <p>GDR is GIDORA's Solana-based token, with an intended fixed total supply of 21,000,000 GDR. 10,000,000 GDR is set aside for early-adoption claims and is part of that supply, not extra.</p>
+        <p>GDR is GIDORA's Solana-based token with an intended fixed supply of 21,000,000 GDR. 10,000,000 GDR is set aside for early-adoption claims.</p>
       </details>
       <details>
-        <summary>How much GDR will I receive?</summary>
-        <p>It depends on your global claim position. The first claim receives 21 GDR and the last receives 0.21 GDR, decreasing smoothly in between. You will see the exact amount before you approve the transaction.</p>
+        <summary>How much is my airdrop worth?</summary>
+        <p>Your GDR amount depends on your claim position: earlier claims receive more (21 GDR for claim #1, down to 0.21 GDR for the last). USD values use an estimated reference of $<span data-price>22</span> per GDR. That isn't a market price or a guarantee.</p>
       </details>
       <details>
         <summary>Why do I need SOL?</summary>
-        <p>Every Solana transaction pays a small network fee in SOL. GDR cannot pay this fee. Needing SOL does not mean you are buying GDR.</p>
+        <p>Every Solana transaction pays a small network fee in SOL. Needing SOL does not mean you are buying GDR.</p>
       </details>
       <details>
         <summary>Does connecting my wallet move my funds?</summary>
-        <p>No. Connecting only shares your public address. To prove you own the wallet, you sign a free message, which is not a transaction. Funds move only when you approve the claim transaction in your wallet.</p>
+        <p>No. Connecting only shares your public address. Funds move only when you approve a claim transaction in your wallet.</p>
       </details>
       <details>
-        <summary>Can I claim more than once?</summary>
-        <p>No. Each eligible wallet can claim once. Attempts to claim with many wallets may be flagged and excluded.</p>
+        <summary>How do referral rewards work?</summary>
+        <p>After you claim, your referral link unlocks. You earn from people you refer directly (one level only), and verified referrals count towards the KOL USDC pools. Those pools are non-cumulative and paid after Round 8.</p>
       </details>
       <details>
         <summary>What are the eight rounds?</summary>
-        <p>They are time windows that control when claims can be made. They don't reset the allocation curve, and joining a later round doesn't give you a bonus.</p>
-      </details>
-      <details>
-        <summary>What counts as a verified referral?</summary>
-        <p>A wallet that opened your link, then completed a successful, verified claim. Clicks, page views and wallet connections don't count. See the <a href="<%= base %>leaderboard/#methodology">leaderboard methodology</a>.</p>
-      </details>
-      <details>
-        <summary>My wallet says "Under review". What now?</summary>
-        <p>Some wallets get extra anti-abuse checks. Most reviews finish within 24 hours. If you think your wallet was flagged by mistake, contact support from the official site.</p>
+        <p>Time windows that control when claims can be made. They don't reset the allocation curve.</p>
       </details>
     </div>
   </div>
@@ -270,24 +103,12 @@
 
 <% if (site.demo) { %>
 <div class="demo-panel" id="demo-panel">
-  <div class="demo-menu" role="menu" aria-label="Preview claim states">
-    <h4>Preview claim states</h4>
-    <button data-demo-state="disconnected" role="menuitem"><span class="sw2" style="background:var(--muted)"></span>Not connected</button>
-    <button data-demo-state="checking" role="menuitem"><span class="sw2" style="background:var(--gold)"></span>Checking eligibility</button>
-    <button data-demo-state="eligible" role="menuitem"><span class="sw2" style="background:var(--green)"></span>Eligible</button>
-    <button data-demo-state="pending" role="menuitem"><span class="sw2" style="background:var(--gold)"></span>Transaction pending</button>
-    <button data-demo-state="claimed" role="menuitem"><span class="sw2" style="background:var(--green)"></span>Claimed</button>
-    <hr>
-    <button data-demo-state="review" role="menuitem"><span class="sw2" style="background:var(--orange)"></span>Under review</button>
-    <button data-demo-state="insufficient" role="menuitem"><span class="sw2" style="background:var(--orange)"></span>Insufficient SOL</button>
-    <button data-demo-state="not_eligible" role="menuitem"><span class="sw2" style="background:var(--red)"></span>Not eligible</button>
-    <button data-demo-state="failed" role="menuitem"><span class="sw2" style="background:var(--red)"></span>Transaction failed</button>
-    <button data-demo-state="round_inactive" role="menuitem"><span class="sw2" style="background:var(--blue)"></span>Round closed</button>
-    <button data-demo-state="error" role="menuitem"><span class="sw2" style="background:var(--red)"></span>Service unavailable</button>
-    <hr>
-    <button data-demo-state="reset" role="menuitem"><span class="sw2" style="background:var(--text)"></span>Back to live flow</button>
+  <div class="demo-menu" role="menu" aria-label="Demo tools">
+    <h4>Demo tools</h4>
+    <button data-demo="new-wallet" role="menuitem"><span class="sw2" style="background:var(--gold)"></span>Connect a fresh demo wallet</button>
+    <button data-demo="disconnect" role="menuitem"><span class="sw2" style="background:var(--muted)"></span>Disconnect (view homepage)</button>
   </div>
-  <button type="button" aria-expanded="false" aria-haspopup="menu"><span class="dot"></span>Demo states</button>
+  <button type="button" aria-expanded="false" aria-haspopup="menu"><span class="dot"></span>Demo</button>
 </div>
 <% } %>
 
