@@ -601,3 +601,9 @@ input[type=range] { width: 100%; accent-color: var(--gold); }
 @keyframes pl-slide { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
 .pl-tag { font-size: .82rem; color: var(--muted); opacity: 0; animation: pl-rise .6s ease .35s forwards; }
 @keyframes pl-rise { to { opacity: 1; transform: none; } }
+
+/* official logo lockup */
+.logo-full { height: 35px; width: auto; }
+.site-footer .logo-full { height: 32px; }
+img.pl-word { height: 32px; width: auto; background: none; padding: 0; }
+@media (max-width: 640px) { .site-header .logo-full { height: 28px; } }

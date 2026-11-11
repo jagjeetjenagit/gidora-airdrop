@@ -1,17 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-36 -36 72 72">
-  <!-- GIDORA mark: three dragon heads (triskelion). Recreated from the Figma reference;
-       replace with the official exported SVG when available. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="7.32 6.79 59.83 59.83" role="img" aria-label="GIDORA">
+  <!-- GIDORA logo: vectorised from the official HD PNG (drops fitted to the artwork, wordmark = Montserrat Bold outlines). -->
   <defs>
-    <linearGradient id="gdr-g" x1="0" y1="-1" x2="0" y2="1" gradientUnits="objectBoundingBox">
-      <stop offset="0" stop-color="#FFE27A"/>
-      <stop offset=".55" stop-color="#F0B90B"/>
-      <stop offset="1" stop-color="#C98A00"/>
-    </linearGradient>
-    <path id="gdr-head" fill-rule="evenodd" d="M5,-6 C8,-9.5 11.5,-11 14,-11.3 L17.5,-16.5 L19,-11 C22,-10.4 25,-8.4 27,-5.6 L33,-2 L25.5,0.4 L31.5,4 C25,10.5 12.5,11.5 5.5,6.5 C2.8,2.5 2.8,-2 5,-6 Z M19.2,-4.2 a2.1,2.1 0 1,0 0.01,0 Z"/>
+    <linearGradient id="gdr-drop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#CBAA00"/><stop offset=".55" stop-color="#BB8A00"/><stop offset="1" stop-color="#AE6F00"/></linearGradient>
+    <linearGradient id="gdr-word" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C29600"/><stop offset="1" stop-color="#B78000"/></linearGradient>
   </defs>
-  <g fill="url(#gdr-g)">
-    <use href="#gdr-head" transform="rotate(-50) scale(1.12)"/>
-    <use href="#gdr-head" transform="rotate(70) scale(.94)"/>
-    <use href="#gdr-head" transform="rotate(190) scale(.94)"/>
-  </g>
+  <path fill="url(#gdr-drop)" d="M27.5 20.5Q35.35 27.55 44.6 32.63A13.65 13.65 0 1 0 45.51 9.77Q35.89 14.1 27.5 20.5Z"/>
+  <path fill="url(#gdr-drop)" d="M18.5 29.5Q13.34 35.13 10.18 42.08A11.18 11.18 0 1 0 28.11 41.12Q24.23 34.55 18.5 29.5Z"/>
+  <path fill="url(#gdr-drop)" d="M35.5 39.5Q36.48 48.35 39.78 56.62A11.82 11.82 0 1 0 52.96 42.06Q44.4 39.59 35.5 39.5Z"/>
 </svg>
