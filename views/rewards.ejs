@@ -1,0 +1,20 @@
+<%- include('partials/head') %>
+
+<section class="page-hero">
+  <div class="container">
+    <span class="eyebrow">Your dashboard</span>
+    <h1>Rewards &amp; Referrals</h1>
+    <p class="lead muted">Your referral link, verified referrals, rank and reward status, all in one place.</p>
+  </div>
+</section>
+
+<section class="section section-tight">
+  <div class="container" id="rewards-root">
+    <div class="card empty-state">
+      <div class="skeleton" style="height:22px;width:40%;margin:0 auto"></div>
+    </div>
+  </div>
+</section>
+
+<% var scripts = ['rewards']; %>
+<%- include('partials/footer', { scripts: scripts }) %>

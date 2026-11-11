@@ -1,0 +1,260 @@
+<%- include('partials/head') %>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="container hero-grid">
+    <div class="hero-copy">
+      <span class="pill pill-live" id="round-pill"><span class="dot"></span><span>Loading campaign…</span></span>
+      <h1>Claim Your <span class="gold">GDR</span></h1>
+      <p class="tagline"><%= campaign.brand.tagline %></p>
+      <p class="lead">
+        Eligible unique Solana wallets can claim GDR from the
+        <strong>10,000,000 GDR</strong> early-adoption allocation, subject to campaign rules and verification.
+      </p>
+      <div class="cta-row">
+        <a href="#claim" class="btn btn-primary btn-lg" data-action="connect-or-scroll">
+          <svg class="i" aria-hidden="true"><use href="#i-wallet"/></svg> <span data-cta-label>Connect Wallet</span>
+        </a>
+        <a href="#how-it-works" class="btn btn-ghost btn-lg">How the Airdrop Works</a>
+      </div>
+      <ul class="trust-row" aria-label="Campaign facts">
+        <li><svg class="i" aria-hidden="true"><use href="#i-solana"/></svg> Solana network</li>
+        <li><svg class="i" aria-hidden="true"><use href="#i-check-circle"/></svg> One claim per wallet</li>
+        <li><svg class="i" aria-hidden="true"><use href="#i-lock"/></svg> We never ask for your seed phrase</li>
+      </ul>
+
+      <div class="counter-block" aria-live="polite">
+        <div class="counter-label">Wallets claimed</div>
+        <div class="counter" id="claim-counter" aria-label="Wallets claimed"></div>
+        <div class="counter-sub muted small">of up to 10,000,000 claim positions</div>
+      </div>
+    </div>
+
+    <!-- Claim card: rendered by /js/claim.js -->
+    <div class="claim-wrap" id="claim">
+      <div class="claim-card card" id="claim-card" aria-live="polite">
+        <div class="skeleton" style="height:22px;width:50%"></div>
+        <div class="skeleton mt-3" style="height:64px"></div>
+        <div class="skeleton mt-3" style="height:48px"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PROGRESS ============ -->
+<section class="section section-tight" aria-labelledby="progress-title">
+  <div class="container">
+    <div class="card progress-card">
+      <div class="progress-head">
+        <div>
+          <h2 id="progress-title" class="h4">Campaign progress</h2>
+          <p class="muted small">GDR distributed from the 10,000,000 GDR claim allocation</p>
+        </div>
+        <span class="muted xsmall" id="stats-updated"></span>
+      </div>
+      <div class="progress-bar" role="progressbar" aria-label="Claim allocation distributed" aria-valuemin="0" aria-valuemax="100" id="progress-bar">
+        <span class="progress-fill" id="progress-fill"></span>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><span class="stat-label">Distributed</span><span class="stat-value" id="s-distributed">—</span><span class="stat-unit">GDR</span></div>
+        <div class="stat"><span class="stat-label">Remaining</span><span class="stat-value" id="s-remaining">—</span><span class="stat-unit">GDR</span></div>
+        <div class="stat"><span class="stat-label">Claims completed</span><span class="stat-value" id="s-claims">—</span><span class="stat-unit">wallets</span></div>
+        <div class="stat"><span class="stat-label">Next claim receives</span><span class="stat-value gold" id="s-next">—</span><span class="stat-unit">GDR (estimate)</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ROUNDS ============ -->
+<section class="section" id="rounds" aria-labelledby="rounds-title">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Eight-round campaign</span>
+      <h2 id="rounds-title">Rounds are access windows, not reward tiers</h2>
+      <p class="muted">Claims open in eight rounds. Every claim takes the next position on <em>one</em> continuous allocation curve. Starting a new round does not reset or boost rewards.</p>
+    </div>
+    <ol class="rounds" id="rounds-list" aria-label="Claim rounds"></ol>
+    <p class="muted xsmall mt-2"><svg class="i i-inline" aria-hidden="true"><use href="#i-info"/></svg> Round dates and any claim fees are shown only once officially approved.</p>
+  </div>
+</section>
+
+<!-- ============ CURVE ============ -->
+<section class="section section-alt" id="curve" aria-labelledby="curve-title">
+  <div class="container curve-grid">
+    <div>
+      <span class="eyebrow">Progressive allocation</span>
+      <h2 id="curve-title">Earlier claims receive more GDR</h2>
+      <p class="muted">Your allocation is set by your global claim position. Claim #1 receives <strong>21 GDR</strong>. The final position (#10,000,000) receives <strong>0.21 GDR</strong>. Amounts decrease smoothly in between, and the total adds up to exactly the 10,000,000 GDR allocation.</p>
+
+      <div class="calc card card-inner mt-3">
+        <label for="calc-pos" class="small strong">Estimate the allocation for any claim position</label>
+        <div class="calc-row">
+          <input id="calc-pos" type="number" inputmode="numeric" min="1" max="10000000" value="1000000" class="input">
+          <div class="calc-out"><span id="calc-out">—</span> <span class="muted">GDR</span></div>
+        </div>
+        <input id="calc-range" type="range" min="1" max="10000000" step="1" value="1000000" aria-label="Claim position slider">
+      </div>
+
+      <div class="note mt-3">
+        <svg class="i" aria-hidden="true"><use href="#i-info"/></svg>
+        <p class="small"><strong>Illustrative model.</strong> <span id="curve-formula"></span>. The final on-chain formula is published with the audited claim program. The amount you sign for is always shown before you approve.</p>
+      </div>
+    </div>
+    <figure class="card chart-card">
+      <figcaption class="chart-cap">
+        <span class="small strong">GDR per claim vs. claim position</span>
+        <span class="legend"><span class="sw sw-gold"></span>Allocation curve <span class="sw sw-white"></span>Current position</span>
+      </figcaption>
+      <div id="curve-chart" class="chart" role="img" aria-label="Line chart: allocation decreases from 21 GDR at claim 1 to 0.21 GDR at claim 10,000,000."></div>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section class="section" id="how-it-works" aria-labelledby="how-title">
+  <div class="container">
+    <div class="section-head center">
+      <span class="eyebrow">How it works</span>
+      <h2 id="how-title">Claim in four simple steps</h2>
+    </div>
+    <ol class="steps">
+      <li class="step card">
+        <span class="step-num">1</span>
+        <h3>Connect your wallet</h3>
+        <p class="muted small">Use Phantom, Solflare or Backpack. Connecting only shares your public address.</p>
+      </li>
+      <li class="step card">
+        <span class="step-num">2</span>
+        <h3>Check eligibility</h3>
+        <p class="muted small">We check claim status, the active round and campaign rules for your wallet.</p>
+      </li>
+      <li class="step card">
+        <span class="step-num">3</span>
+        <h3>Review &amp; approve</h3>
+        <p class="muted small">See the exact GDR amount, network fee and any claim fee before you approve in your wallet.</p>
+      </li>
+      <li class="step card">
+        <span class="step-num">4</span>
+        <h3>Receive GDR &amp; share</h3>
+        <p class="muted small">GDR arrives in the same transaction. Then share your referral link to climb the leaderboard.</p>
+      </li>
+    </ol>
+    <div class="info-strip mt-4">
+      <div><svg class="i" aria-hidden="true"><use href="#i-solana"/></svg><p class="small"><strong>SOL is required for Solana network fees.</strong> GDR cannot pay gas, and claiming is not a token purchase.</p></div>
+      <div><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg><p class="small"><strong>One claim per wallet.</strong> Duplicate, self-referred and automated claims are excluded.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ REFERRAL ============ -->
+<section class="section section-alt" id="referral" aria-labelledby="ref-title">
+  <div class="container ref-grid">
+    <div>
+      <span class="eyebrow">Referrals</span>
+      <h2 id="ref-title">Invite friends. Climb the leaderboard.</h2>
+      <p class="muted">Share your personal link. A referral counts only after the referred wallet completes a verified claim. Clicks and sign-ups alone don't count.</p>
+      <ul class="checklist">
+        <li><svg class="i"><use href="#i-check"/></svg><span>One level only: you earn from people you refer directly, never from their referrals</span></li>
+        <li><svg class="i"><use href="#i-check"/></svg><span>Self-referrals and duplicate wallets are excluded</span></li>
+        <li><svg class="i"><use href="#i-check"/></svg><span>Verified referrals rank you on the Airdrop Leaderboard</span></li>
+      </ul>
+      <p class="badge-row"><span class="badge badge-warn">Proposed / subject to final terms</span> <span class="muted small">Direct referral reward: 25% of an eligible fee. The fee base, asset and payout timing will be published before any reward is earned.</span></p>
+    </div>
+    <div class="card ref-card" id="home-ref-card"></div>
+  </div>
+</section>
+
+<!-- ============ KOL POOL ============ -->
+<section class="section" id="kol" aria-labelledby="kol-title">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">KOL Pool Referral Rewards</span>
+      <h2 id="kol-title">Milestone pools for top promoters</h2>
+      <p class="muted">A separate USDC incentive for participants who reach verified referral milestones. It is <strong>not</strong> the same as the direct referral reward.</p>
+    </div>
+
+    <div class="kol-grid">
+      <div class="card">
+        <div class="kol-cap">
+          <span class="muted small">Proposed aggregate cap</span>
+          <span class="kol-cap-value">6,900,000 <small>USDC</small></span>
+          <span class="badge badge-warn">Not yet funded · subject to final terms</span>
+        </div>
+        <table class="mini-table mt-3">
+          <caption class="sr-only">Known example tiers</caption>
+          <thead><tr><th scope="col">Verified referrals</th><th scope="col">Tier pool</th></tr></thead>
+          <tbody>
+            <% campaign.kolPool.knownTiers.forEach(function (t) { %>
+              <tr><td><%= t.referrals.toLocaleString('en-US') %>+</td><td><%= t.poolUsdc.toLocaleString('en-US') %> USDC</td></tr>
+            <% }) %>
+            <tr><td colspan="2" class="muted xsmall">Example tiers only. The full tier schedule will be published before the campaign starts.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3 class="h5">How the pools work</h3>
+        <ul class="checklist">
+          <li><svg class="i"><use href="#i-check"/></svg><span>Each tier's pool is shared <strong>equally</strong> among everyone who reaches it</span></li>
+          <li><svg class="i"><use href="#i-check"/></svg><span><strong>Non-cumulative:</strong> you share only in your highest tier, not every tier below it</span></li>
+          <li><svg class="i"><use href="#i-check"/></svg><span>Paid in USDC only after Round 8, final verification and funding</span></li>
+        </ul>
+        <div class="example small mt-2">
+          <strong>Example:</strong> a 10,000 USDC pool shared by 20 eligible participants = 500 USDC each.
+        </div>
+        <ol class="pipeline mt-3" aria-label="KOL pool status">
+          <% ['Accumulating','Verification','Finalized','Funded','Distribution','Completed'].forEach(function (s, i) { %>
+            <li class="<%= i === 0 ? 'current' : '' %>"><span><%= s %></span></li>
+          <% }) %>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="section section-alt" id="faq" aria-labelledby="faq-title">
+  <div class="container narrow">
+    <div class="section-head center">
+      <span class="eyebrow">FAQ</span>
+      <h2 id="faq-title">Questions, answered</h2>
+    </div>
+    <div class="faq">
+      <details>
+        <summary>What is GDR?</summary>
+        <p>GDR is GIDORA's Solana-based token, with an intended fixed total supply of 21,000,000 GDR. 10,000,000 GDR is set aside for early-adoption claims and is part of that supply, not extra.</p>
+      </details>
+      <details>
+        <summary>How much GDR will I receive?</summary>
+        <p>It depends on your global claim position. The first claim receives 21 GDR and the last receives 0.21 GDR, decreasing smoothly in between. You will see the exact amount before you approve the transaction.</p>
+      </details>
+      <details>
+        <summary>Why do I need SOL?</summary>
+        <p>Every Solana transaction pays a small network fee in SOL. GDR cannot pay this fee. Needing SOL does not mean you are buying GDR.</p>
+      </details>
+      <details>
+        <summary>Does connecting my wallet move my funds?</summary>
+        <p>No. Connecting only shares your public address. To prove you own the wallet, you sign a free message, which is not a transaction. Funds move only when you approve the claim transaction in your wallet.</p>
+      </details>
+      <details>
+        <summary>Can I claim more than once?</summary>
+        <p>No. Each eligible wallet can claim once. Attempts to claim with many wallets may be flagged and excluded.</p>
+      </details>
+      <details>
+        <summary>What are the eight rounds?</summary>
+        <p>They are time windows that control when claims can be made. They don't reset the allocation curve, and joining a later round doesn't give you a bonus.</p>
+      </details>
+      <details>
+        <summary>What counts as a verified referral?</summary>
+        <p>A wallet that opened your link, then completed a successful, verified claim. Clicks, page views and wallet connections don't count. See the <a href="/leaderboard#methodology">leaderboard methodology</a>.</p>
+      </details>
+      <details>
+        <summary>My wallet says "Under review". What now?</summary>
+        <p>Some wallets get extra anti-abuse checks. Most reviews finish within 24 hours. If you think your wallet was flagged by mistake, contact support from the official site.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<% var scripts = ['claim']; %>
+<%- include('partials/footer', { scripts: scripts }) %>

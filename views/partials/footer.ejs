@@ -1,0 +1,59 @@
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="/" class="logo"><img src="/img/logo.svg" alt="" width="28" height="28"><span>GIDORA</span></a>
+        <p class="muted small mt-2"><%= site.brand.tagline %></p>
+        <p class="muted small">Built on <svg class="i i-inline" aria-hidden="true"><use href="#i-solana"/></svg> Solana</p>
+      </div>
+      <nav aria-label="Footer">
+        <h4>Campaign</h4>
+        <a href="/">Claim Airdrop</a>
+        <a href="/leaderboard">Airdrop Leaderboard</a>
+        <a href="/rewards">Rewards &amp; Referrals</a>
+        <a href="/#how-it-works">How It Works</a>
+      </nav>
+      <nav aria-label="Resources">
+        <h4>Resources</h4>
+        <a href="/#faq">FAQ</a>
+        <a href="/leaderboard#methodology">Leaderboard methodology</a>
+        <a href="/#curve">Allocation curve</a>
+        <a href="<%= site.links.support %>">Support</a>
+      </nav>
+      <div>
+        <h4>Stay safe</h4>
+        <p class="muted small">GIDORA will never ask for your seed phrase or private key. Always check you are on the official domain before connecting.</p>
+      </div>
+    </div>
+    <p class="risk-note">
+      GDR claims, referral rewards and promotional pools are subject to eligibility, technical availability and published terms.
+      Reference values are not market prices or guarantees. Digital assets are volatile and may lose value.
+      Users are responsible for wallet security and network transaction fees. SOL is required for Solana network fees.
+    </p>
+    <p class="muted small">© <%= site.year %> GIDORA. All rights reserved.</p>
+  </div>
+</footer>
+
+<!-- Wallet picker -->
+<dialog class="modal" id="wallet-modal" aria-labelledby="wallet-modal-title">
+  <div class="modal-head">
+    <h3 id="wallet-modal-title">Connect a Solana wallet</h3>
+    <button class="icon-btn" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button>
+  </div>
+  <p class="muted small">Connecting only shares your public address. It does not move funds or approve any transfer.</p>
+  <div class="wallet-list" id="wallet-list"></div>
+  <p class="muted xsmall mt-2"><svg class="i i-inline"><use href="#i-shield"/></svg> You'll be asked to sign a free message to prove you own the wallet. No transaction, no fee.</p>
+</dialog>
+
+<!-- Generic modal (claim confirmation etc.) -->
+<dialog class="modal" id="app-modal" aria-labelledby="app-modal-title"></dialog>
+
+<div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+
+<script src="/js/app.js"></script>
+<% if (typeof scripts !== 'undefined') { scripts.forEach(function (s) { %><script src="/js/<%= s %>.js"></script>
+<% }) } %>
+</body>
+</html>

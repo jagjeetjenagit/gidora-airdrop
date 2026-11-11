@@ -1,0 +1,22 @@
+{
+  "name": "gidora-airdrop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "GIDORA (GDR) Phase 1: Claim Airdrop, Airdrop Leaderboard and Rewards & Referrals website.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test \"test/*.test.js\""
+  },
+  "engines": {
+    "node": ">=18.17"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "compression": "^1.8.2",
+    "ejs": "^3.1.10",
+    "express": "^4.22.3",
+    "helmet": "^7.2.0"
+  }
+}

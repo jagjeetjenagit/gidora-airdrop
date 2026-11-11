@@ -1,0 +1,82 @@
+<%- include('partials/head') %>
+
+<section class="page-hero">
+  <div class="container">
+    <span class="eyebrow">Airdrop referral ranking</span>
+    <h1>Airdrop Leaderboard</h1>
+    <p class="lead muted">Rankings show verified referrals for the current campaign period. Only referrals that complete a verified claim count.</p>
+    <% if (site.demo) { %><span class="badge badge-sample">Illustrative sample data</span><% } %>
+  </div>
+</section>
+
+<section class="section section-tight">
+  <div class="container">
+    <div class="summary-grid">
+      <div class="card stat-card"><svg class="i stat-icon"><use href="#i-users"/></svg><span class="stat-label">Ranked participants</span><span class="stat-value" id="lb-participants">—</span></div>
+      <div class="card stat-card"><svg class="i stat-icon"><use href="#i-check-circle"/></svg><span class="stat-label">Verified referrals</span><span class="stat-value" id="lb-verified">—</span></div>
+      <div class="card stat-card"><svg class="i stat-icon"><use href="#i-clock"/></svg><span class="stat-label">Campaign period</span><span class="stat-value" id="lb-period">—</span></div>
+    </div>
+
+    <div class="card my-rank mt-3" id="my-rank"></div>
+
+    <div class="card lb-card mt-3">
+      <div class="lb-toolbar">
+        <div class="tabs" role="tablist" aria-label="Leaderboard view">
+          <button role="tab" aria-selected="true" class="tab active" data-tab="global">Global</button>
+          <button role="tab" aria-selected="false" class="tab" data-tab="me">My Rank</button>
+        </div>
+        <label class="search">
+          <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
+          <input type="search" id="lb-search" placeholder="Search wallet address" aria-label="Search wallet address" autocomplete="off" spellcheck="false">
+        </label>
+      </div>
+
+      <div class="table-wrap">
+        <table class="lb-table">
+          <caption class="sr-only">Airdrop referral leaderboard</caption>
+          <thead>
+            <tr>
+              <th scope="col" class="col-rank">Rank</th>
+              <th scope="col">Wallet</th>
+              <th scope="col" class="num">Verified referrals</th>
+              <th scope="col">Status</th>
+              <th scope="col">Reward status</th>
+            </tr>
+          </thead>
+          <tbody id="lb-body"></tbody>
+        </table>
+      </div>
+      <div class="lb-cards" id="lb-cards"></div>
+
+      <div class="lb-foot">
+        <span class="muted xsmall" id="lb-updated"></span>
+        <div class="pager" id="lb-pager"></div>
+      </div>
+    </div>
+
+    <div class="card methodology mt-4" id="methodology">
+      <h2 class="h4">Methodology</h2>
+      <div class="method-grid">
+        <div>
+          <h3 class="h6">What counts</h3>
+          <p class="muted small">A referral is verified when a new wallet opens your link and then completes a successful claim. Attribution is first-touch and locks at that point.</p>
+        </div>
+        <div>
+          <h3 class="h6">What's excluded</h3>
+          <p class="muted small">Link clicks, page views, wallet connections without a claim, self-referrals, duplicate wallets and activity flagged by anti-abuse checks.</p>
+        </div>
+        <div>
+          <h3 class="h6">Updates &amp; disputes</h3>
+          <p class="muted small">Rankings refresh from indexed on-chain claim records, and each refresh is timestamped. To dispute a status, contact support through the official site.</p>
+        </div>
+        <div>
+          <h3 class="h6">Rewards</h3>
+          <p class="muted small">Your leaderboard position doesn't guarantee a reward. KOL pool payouts depend on final terms, verification and funding after Round 8.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<% var scripts = ['leaderboard']; %>
+<%- include('partials/footer', { scripts: scripts }) %>
