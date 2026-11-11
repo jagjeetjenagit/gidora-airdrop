@@ -15,7 +15,7 @@ npm test           # curve maths + API tests
 npm start          # production
 ```
 
-Requires Node.js 18.17+.
+Requires Node.js 22+.
 
 ## Hosting on GitHub Pages (static preview)
 
