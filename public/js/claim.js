@@ -271,7 +271,7 @@
           </dl>
           <div class="claim-actions">
             <button class="btn btn-primary btn-block" id="btn-share-ref">${icon('share')} Share your referral link</button>
-            <a class="btn btn-ghost btn-block" href="/rewards">View rewards &amp; referrals ${icon('arrow')}</a>
+            <a class="btn btn-ghost btn-block" href="${window.GDR.base}rewards/">View rewards &amp; referrals ${icon('arrow')}</a>
           </div>`;
         break;
       }
@@ -390,7 +390,7 @@
   async function shareRef() {
     try {
       const me = await api('/referrals/me', { auth: true });
-      const link = `${location.origin}/?ref=${me.code}`;
+      const link = `${location.origin}${window.GDR.base}?ref=${me.code}`;
       share(link, 'I just claimed $GDR on GIDORA. Limited like Bitcoin, claimable by everyone.');
     } catch (e) { toast(e.message, 'err'); }
   }
@@ -410,7 +410,7 @@
     }
     try {
       const me = await api('/referrals/me', { auth: true });
-      const link = `${location.origin}/?ref=${me.code}`;
+      const link = `${location.origin}${window.GDR.base}?ref=${me.code}`;
       el.innerHTML = `<div class="claim-top"><h3 class="claim-title">Your referral link</h3>${me.rank ? `<span class="badge badge-ok">Rank #${fmt.int(me.rank)}</span>` : ''}</div>
         <div class="ref-link"><code>${esc(link)}</code>
           <button class="btn btn-ghost btn-sm" data-copy="${esc(link)}">${icon('copy')} Copy</button>
@@ -421,7 +421,7 @@
           <div class="ref-stat"><b>${fmt.int(me.pending)}</b><span>Pending</span></div>
           <div class="ref-stat"><b>${fmt.int(me.underReview)}</b><span>Under review</span></div>
         </div>
-        <a href="/rewards" class="btn btn-ghost btn-block mt-3">Open rewards dashboard ${icon('arrow')}</a>`;
+        <a href="${window.GDR.base}rewards/" class="btn btn-ghost btn-block mt-3">Open rewards dashboard ${icon('arrow')}</a>`;
       el.querySelector('[data-copy]').addEventListener('click', (e) => copy(e.currentTarget.dataset.copy, 'Referral link copied'));
       el.querySelector('[data-share]').addEventListener('click', (e) => share(e.currentTarget.dataset.share, 'Claim your $GDR on GIDORA. Limited like Bitcoin, claimable by everyone.'));
     } catch { /* handled by toast in api */ }

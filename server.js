@@ -38,6 +38,8 @@ app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: process.env.NODE_ENV === 'production' ? '7d' : 0,
 }));
 
+app.locals.base = '/';
+app.locals.isStatic = false;
 app.locals.site = {
   brand: config.brand,
   demo: config.DEMO_MODE,

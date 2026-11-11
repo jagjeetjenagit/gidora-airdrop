@@ -17,6 +17,23 @@ npm start          # production
 
 Requires Node.js 18.17+.
 
+## Hosting on GitHub Pages (static preview)
+
+GitHub Pages serves static files only, so it can't run the Node server. For Pages, `npm run build:static` renders every page to HTML in `dist/`. In that build, `public/js/static-api.js` runs the same API rules **inside the browser** (demo mode, saved to localStorage). The campaign config and curve parameters are generated from `src/` at build time, so no values are copied by hand.
+
+**Deploying is automatic:** `.github/workflows/pages.yml` runs the tests, builds and publishes on every push to `main`. The base path (`/<repo>/`) is detected automatically.
+
+One-time setup: **repo → Settings → Pages → Build and deployment → Source: GitHub Actions**.
+
+To preview the Pages build locally:
+
+```bash
+BASE_PATH=/gidora-airdrop/ npm run build:static
+BASE_PATH=/gidora-airdrop/ npm run preview:static   # http://localhost:4000/gidora-airdrop/
+```
+
+Limits of the Pages build: data is per browser, so referrals between different visitors aren't shared, and it is always a preview. For the live campaign, run the Node server (or the on-chain indexer) on a host such as Render, Railway or a VPS.
+
 ## Pages
 
 | Route | Purpose |

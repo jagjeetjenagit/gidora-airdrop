@@ -55,7 +55,7 @@
       return;
     }
     if (tab === 'me' && !me) {
-      const msg = `<div class="empty-state"><h3>No rank yet</h3><p>You'll appear here once someone you referred completes a verified claim.</p><a class="btn btn-primary" href="/rewards">${icon('link')} Get your referral link</a></div>`;
+      const msg = `<div class="empty-state"><h3>No rank yet</h3><p>You'll appear here once someone you referred completes a verified claim.</p><a class="btn btn-primary" href="${window.GDR.base}rewards/">${icon('link')} Get your referral link</a></div>`;
       $('lb-body').innerHTML = `<tr><td colspan="5">${msg}</td></tr>`;
       $('lb-cards').innerHTML = msg;
       $('lb-pager').innerHTML = '';
@@ -97,14 +97,14 @@
     if (!me) {
       el.innerHTML = `<div class="my-rank-num">—</div>
         <div class="grow"><div class="strong">Your rank</div><div class="muted small">No verified referrals yet. Share your link to get on the board.</div></div>
-        <a class="btn btn-primary btn-sm" href="/rewards">${icon('link')} Get referral link</a>`;
+        <a class="btn btn-primary btn-sm" href="${window.GDR.base}rewards/">${icon('link')} Get referral link</a>`;
       return;
     }
     const nextTier = [100, 200, 50000].find((t) => t > me.verified);
     el.innerHTML = `<div class="my-rank-num">#${fmt.int(me.rank)}</div>
       <div class="grow"><div class="strong">Your rank · ${fmt.int(me.verified)} verified referrals</div>
       <div class="muted small">${nextTier ? `${fmt.int(nextTier - me.verified)} more to reach the ${fmt.int(nextTier)}-referral example milestone (subject to final tier schedule).` : 'You have passed all published example milestones.'}</div></div>
-      <a class="btn btn-ghost btn-sm" href="/rewards">${icon('link')} Referral link</a>`;
+      <a class="btn btn-ghost btn-sm" href="${window.GDR.base}rewards/">${icon('link')} Referral link</a>`;
   }
 
   function renderPager() {

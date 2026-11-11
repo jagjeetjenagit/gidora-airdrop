@@ -36,13 +36,13 @@
       return;
     }
 
-    const link = `${location.origin}/?ref=${me.code}`;
+    const link = `${location.origin}${window.GDR.base}?ref=${me.code}`;
     const pendingRef = LS.get('gdr_ref');
 
     root.innerHTML = `
     <div class="dash-grid">
       <div class="card">
-        <div class="claim-top"><h2 class="claim-title">Your referral link</h2>${me.rank ? `<a class="badge badge-ok" href="/leaderboard">${icon('trophy')} Rank #${fmt.int(me.rank)}</a>` : '<span class="badge badge-muted">Not ranked yet</span>'}</div>
+        <div class="claim-top"><h2 class="claim-title">Your referral link</h2>${me.rank ? `<a class="badge badge-ok" href="${window.GDR.base}leaderboard/">${icon('trophy')} Rank #${fmt.int(me.rank)}</a>` : '<span class="badge badge-muted">Not ranked yet</span>'}</div>
         <div class="ref-link"><code>${esc(link)}</code>
           <button class="btn btn-primary btn-sm" id="rw-copy">${icon('copy')} Copy</button>
           <button class="icon-btn" id="rw-share" aria-label="Share referral link">${icon('share')}</button>
@@ -60,7 +60,7 @@
         ${me.claim ? `
           <div class="claim-amount-box mt-3"><div class="claim-amount-label">Claimed</div><div class="claim-amount">${fmt.gdr(me.claim.amount)}<small>GDR</small></div></div>
           <dl class="kv"><dt>Claim number</dt><dd>#${fmt.int(me.claim.index)}</dd><dt>Round</dt><dd>Round ${me.claim.round}</dd><dt>Date</dt><dd>${fmt.date(me.claim.at)}</dd></dl>`
-        : `<div class="state-body mt-3"><div class="state-icon gold">${icon('gift')}</div><p>You haven't claimed GDR yet.</p><a class="btn btn-primary" href="/#claim">Go to Claim</a></div>`}
+        : `<div class="state-body mt-3"><div class="state-icon gold">${icon('gift')}</div><p>You haven't claimed GDR yet.</p><a class="btn btn-primary" href="${window.GDR.base}#claim">Go to Claim</a></div>`}
       </div>
 
       <div class="card">

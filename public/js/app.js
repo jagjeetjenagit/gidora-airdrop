@@ -3,6 +3,8 @@
   'use strict';
 
   const DEMO = document.body.dataset.demo === 'true';
+  const BASE = document.body.dataset.base || '/';
+  const STATIC = document.body.dataset.static === 'true' && !!window.GDRStaticApi;
   const LS = {
     get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage unavailable */ } },
@@ -46,7 +48,13 @@
     if (auth && wallet.session) headers.Authorization = `Bearer ${wallet.session.token}`;
     let res;
     try {
-      res = await fetch(`/api${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined });
+      if (STATIC) {
+        // GitHub Pages build: the API runs in the browser (demo mode)
+        const r = await window.GDRStaticApi.request(method, path, body, headers.Authorization);
+        res = { ok: r.status < 400, status: r.status, json: async () => r.data };
+      } else {
+        res = await fetch(`${BASE}api${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined });
+      }
     } catch {
       const e = new Error('Network unavailable. Check your connection and try again.');
       e.code = 'network'; throw e;
@@ -286,5 +294,5 @@
   wallet.restore();
   renderSlot();
 
-  window.GDR = { DEMO, api, wallet, fmt, esc, icon, toast, modal, copy, share, identicon, LS };
+  window.GDR = { DEMO, base: BASE, isStatic: STATIC, api, wallet, fmt, esc, icon, toast, modal, copy, share, identicon, LS };
 })();

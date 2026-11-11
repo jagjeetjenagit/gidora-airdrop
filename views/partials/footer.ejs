@@ -4,22 +4,22 @@
   <div class="container">
     <div class="footer-grid">
       <div>
-        <a href="/" class="logo"><img src="/img/logo.svg" alt="" width="28" height="28"><span>GIDORA</span></a>
+        <a href="<%= base %>" class="logo"><img src="<%= base %>img/logo.svg" alt="" width="28" height="28"><span>GIDORA</span></a>
         <p class="muted small mt-2"><%= site.brand.tagline %></p>
         <p class="muted small">Built on <svg class="i i-inline" aria-hidden="true"><use href="#i-solana"/></svg> Solana</p>
       </div>
       <nav aria-label="Footer">
         <h4>Campaign</h4>
-        <a href="/">Claim Airdrop</a>
-        <a href="/leaderboard">Airdrop Leaderboard</a>
-        <a href="/rewards">Rewards &amp; Referrals</a>
-        <a href="/#how-it-works">How It Works</a>
+        <a href="<%= base %>">Claim Airdrop</a>
+        <a href="<%= base %>leaderboard/">Airdrop Leaderboard</a>
+        <a href="<%= base %>rewards/">Rewards &amp; Referrals</a>
+        <a href="<%= base %>#how-it-works">How It Works</a>
       </nav>
       <nav aria-label="Resources">
         <h4>Resources</h4>
-        <a href="/#faq">FAQ</a>
-        <a href="/leaderboard#methodology">Leaderboard methodology</a>
-        <a href="/#curve">Allocation curve</a>
+        <a href="<%= base %>#faq">FAQ</a>
+        <a href="<%= base %>leaderboard/#methodology">Leaderboard methodology</a>
+        <a href="<%= base %>#curve">Allocation curve</a>
         <a href="<%= site.links.support %>">Support</a>
       </nav>
       <div>
@@ -52,8 +52,10 @@
 
 <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
 
-<script src="/js/app.js"></script>
-<% if (typeof scripts !== 'undefined') { scripts.forEach(function (s) { %><script src="/js/<%= s %>.js"></script>
+<% if (isStatic) { %><script src="<%= base %>js/static-config.js"></script>
+<script src="<%= base %>js/static-api.js"></script>
+<% } %><script src="<%= base %>js/app.js"></script>
+<% if (typeof scripts !== 'undefined') { scripts.forEach(function (s) { %><script src="<%= base %>js/<%= s %>.js"></script>
 <% }) } %>
 </body>
 </html>

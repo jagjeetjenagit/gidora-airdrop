@@ -5,3 +5,4 @@ data/
 .DS_Store
 # Client source documents are confidential, keep them out of the repo
 *.docx
+dist/

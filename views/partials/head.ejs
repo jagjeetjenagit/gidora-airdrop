@@ -8,13 +8,13 @@
   <meta name="theme-color" content="#08090b">
   <meta property="og:title" content="<%= title %> · GIDORA">
   <meta property="og:description" content="<%= site.brand.tagline %>">
-  <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="<%= base %>img/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="<%= base %>css/styles.css">
 </head>
-<body data-page="<%= nav %>" data-demo="<%= site.demo %>">
+<body data-page="<%= nav %>" data-demo="<%= site.demo %>" data-base="<%= base %>" data-static="<%= isStatic %>">
 <%- include('icons') %>
 <a class="skip-link" href="#main">Skip to content</a>
 
@@ -27,21 +27,21 @@
 
 <header class="site-header" id="top">
   <div class="container header-inner">
-    <a href="/" class="logo" aria-label="GIDORA home">
-      <img src="/img/logo.svg" alt="" width="30" height="30">
+    <a href="<%= base %>" class="logo" aria-label="GIDORA home">
+      <img src="<%= base %>img/logo.svg" alt="" width="30" height="30">
       <span>GIDORA</span>
     </a>
 
     <nav class="main-nav" id="main-nav" aria-label="Primary">
-      <a href="/" class="<%= nav === 'claim' ? 'active' : '' %>" <%- nav === 'claim' ? 'aria-current="page"' : '' %>>Claim Airdrop</a>
-      <a href="/leaderboard" class="<%= nav === 'leaderboard' ? 'active' : '' %>" <%- nav === 'leaderboard' ? 'aria-current="page"' : '' %>>Leaderboard</a>
-      <a href="/rewards" class="<%= nav === 'rewards' ? 'active' : '' %>" <%- nav === 'rewards' ? 'aria-current="page"' : '' %>>Rewards</a>
-      <a href="/#how-it-works">How It Works</a>
-      <a href="/#faq">FAQ</a>
+      <a href="<%= base %>" class="<%= nav === 'claim' ? 'active' : '' %>" <%- nav === 'claim' ? 'aria-current="page"' : '' %>>Claim Airdrop</a>
+      <a href="<%= base %>leaderboard/" class="<%= nav === 'leaderboard' ? 'active' : '' %>" <%- nav === 'leaderboard' ? 'aria-current="page"' : '' %>>Leaderboard</a>
+      <a href="<%= base %>rewards/" class="<%= nav === 'rewards' ? 'active' : '' %>" <%- nav === 'rewards' ? 'aria-current="page"' : '' %>>Rewards</a>
+      <a href="<%= base %>#how-it-works">How It Works</a>
+      <a href="<%= base %>#faq">FAQ</a>
     </nav>
 
     <div class="header-actions">
-      <a href="/#claim" class="btn btn-ghost btn-sm mobile-claim">Claim</a>
+      <a href="<%= base %>#claim" class="btn btn-ghost btn-sm mobile-claim">Claim</a>
       <div class="wallet-slot" data-wallet-slot>
         <button class="btn btn-primary btn-sm" data-action="connect">
           <svg class="i" aria-hidden="true"><use href="#i-wallet"/></svg>
