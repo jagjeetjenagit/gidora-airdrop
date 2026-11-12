@@ -19,9 +19,9 @@ const config = require('../config/campaign');
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', '..', 'data');
 const FILE = path.join(DATA_DIR, 'store.json');
 
-const { demoClaims } = require('./schedule');
+const { demoClaims, toBase, splitClaim, normalizeClaim, vestingState } = require('./schedule');
 
-let state = { claims: {}, referrals: {}, codes: {} };
+let state = { claims: {}, referrals: {}, codes: {}, demoVestingStart: null };
 let saveTimer = null;
 
 function load() {
@@ -60,7 +60,9 @@ function claimCount() {
   return demoClaims(Date.now(), config.demo) + realClaimCount();
 }
 
-function getClaim(wallet) { return state.claims[wallet] || null; }
+function getClaim(wallet) { return normalizeClaim(state.claims[wallet] || null, config.vesting.immediatePct); }
+
+const randomSig = () => base58Encode(crypto.randomBytes(64));
 
 function recentClaims(n) {
   return Object.values(state.claims).sort((a, b) => (a.at < b.at ? 1 : -1)).slice(0, n);
@@ -70,11 +72,17 @@ function recordClaim(wallet, { round, demo, feeUsd = null }) {
   if (state.claims[wallet]) return { error: 'already_claimed', claim: state.claims[wallet] };
   const index = claimCount() + 1; // atomic within this single-threaded process
   if (index > curve.N) return { error: 'campaign_complete' };
-  const amount = +curve.allocationAt(index).toFixed(6);
+  // integer base units; final claim is capped to what is left of the 10M allocation
+  const remainingBase = toBase(curve.BUDGET) - toBase(curve.distributedAfter(index - 1));
+  const amountBase = Math.max(0, Math.min(toBase(curve.allocationAt(index)), remainingBase));
+  const { immediate, locked } = splitClaim(amountBase, config.vesting.immediatePct);
   const claim = {
-    wallet, index, amount, round, demo: !!demo, feeUsd,
+    wallet, index, round, demo: !!demo, feeUsd,
+    amount: amountBase / 10 ** config.vesting.decimals,
+    amountBase, immediateBase: immediate, lockedBase: locked,
+    withdrawnBase: 0, withdrawals: [],
     at: new Date().toISOString(),
-    signature: demo ? null : undefined, // real tx signature comes from the program
+    signature: demo ? randomSig() : undefined, // real tx signature comes from the program
   };
   state.claims[wallet] = claim;
 
@@ -82,6 +90,28 @@ function recordClaim(wallet, { round, demo, feeUsd = null }) {
   if (ref && ref.status === 'pending') { ref.status = 'verified'; ref.verifiedAt = claim.at; }
   save();
   return { claim };
+}
+
+// ---------- vesting ----------
+/** Global vesting start (ms) — config value, or the demo simulation. */
+function vestingStart() {
+  if (config.vesting.startsAt) return Date.parse(config.vesting.startsAt);
+  return config.DEMO_MODE ? state.demoVestingStart : null;
+}
+
+function setDemoVestingStart(ms) { state.demoVestingStart = ms; save(); }
+
+function withdrawVested(wallet, now = Date.now()) {
+  const c = getClaim(wallet);
+  if (!c) return { error: 'not_claimed' };
+  const v = vestingState(c.lockedBase, c.withdrawnBase, vestingStart(), now, config.vesting.durationDays);
+  if (v.status === 'pending') return { error: 'vesting_not_started' };
+  if (v.available <= 0) return { error: 'nothing_to_withdraw' };
+  c.withdrawnBase += v.available;
+  const w = { amountBase: v.available, cumulativeBase: c.withdrawnBase, at: new Date(now).toISOString(), signature: randomSig(), demo: !!c.demo };
+  c.withdrawals.unshift(w);
+  save();
+  return { withdrawal: w, claim: c };
 }
 
 // ---------- referrals ----------
@@ -146,7 +176,7 @@ function leaderboard(period = 'all') {
   return rows;
 }
 
-function _reset() { state = { claims: {}, referrals: {}, codes: {} }; for (const k in demoBoards) delete demoBoards[k]; }
+function _reset() { state = { claims: {}, referrals: {}, codes: {}, demoVestingStart: null }; for (const k in demoBoards) delete demoBoards[k]; }
 
 load();
 
@@ -154,4 +184,5 @@ module.exports = {
   claimCount, realClaimCount, getClaim, recordClaim, recentClaims,
   referralCodeFor, walletForCode, bindReferral, referralStats,
   leaderboard, _reset,
+  vestingStart, setDemoVestingStart, withdrawVested,
 };

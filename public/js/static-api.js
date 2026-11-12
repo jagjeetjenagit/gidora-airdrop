@@ -63,11 +63,22 @@
   let st;
   try { st = JSON.parse(localStorage.getItem(KEY)); } catch { st = null; }
   st = st || { claims: {}, referrals: {}, codes: {} };
+  if (st.demoVestingStart === undefined) st.demoVestingStart = null;
+  const VEST = CFG.vesting;
+  const vestStart = () => (VEST.startsAt ? Date.parse(VEST.startsAt) : st.demoVestingStart);
+  const getClaim = (w) => SCHED.normalizeClaim(st.claims[w] || null, VEST.immediatePct);
+  const view = (c) => SCHED.claimView(c, vestStart(), Date.now(), VEST.durationDays);
+  const randomSig = () => b58encode(crypto.getRandomValues(new Uint8Array(64)));
+  function vestingInfo() {
+    const v = SCHED.vestingState(0, 0, vestStart(), Date.now(), VEST.durationDays);
+    return { ...VEST, status: v.status, startTs: v.startTs, endTs: v.endTs, percent: v.percent, simulated: !VEST.startsAt && vestStart() != null };
+  }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch { /* storage unavailable */ } };
 
   const realCount = () => Object.keys(st.claims).length;
   const claimCount = () => SCHED.demoClaims(Date.now(), CFG.demo) + realCount();
-  const rounds = () => SCHED.scheduleRounds(CFG.rounds, Date.now(), CFG.demo);
+  const rounds = () => SCHED.scheduleRounds(CFG.rounds, Date.now(), CFG.demo, { claimCount: claimCount(), distributedAfter, N })
+    .map((r) => ({ ...r, claimedGdr: +r.claimedGdr.toFixed(2) }));
   const activeRound = () => rounds().find((r) => r.status === 'active') || null;
   function codeFor(wallet) {
     const code = b58encode(bytesFrom('gdr-ref:' + wallet, 6));
@@ -154,7 +165,7 @@
     if (method === 'GET' && p === '/campaign') {
       return ok({
         demo: true, brand: CFG.brand, network: CFG.network, token: CFG.token,
-        rounds: rounds(), activeRound: activeRound() ? activeRound().id : null, stats: stats(),
+        rounds: rounds(), activeRound: activeRound() ? activeRound().id : null, stats: stats(), vesting: vestingInfo(),
         curve: CFG.curveMeta, referral: CFG.referral, kolPool: CFG.kolPool,
       });
     }
@@ -184,7 +195,7 @@
     if (method === 'GET' && (m = p.match(/^\/eligibility\/(.+)$/))) {
       const wallet = decodeURIComponent(m[1]);
       if (!validWallet(wallet)) return fail(400, 'invalid_wallet', 'Invalid wallet address.');
-      if (st.claims[wallet]) return ok({ status: 'claimed', claim: st.claims[wallet] });
+      if (st.claims[wallet]) return ok({ status: 'claimed', claim: view(getClaim(wallet)) });
       const round = activeRound();
       if (!round) return ok({ status: 'round_inactive', message: 'No claim round is open right now.' });
       const e = demoEligibility(wallet), s = stats();
@@ -200,12 +211,42 @@
       if (e.status !== 'eligible') return fail(403, e.status, e.message || e.reason);
       if (body && body.ref) bindReferral(wallet, String(body.ref).slice(0, 32));
       const index = claimCount() + 1;
-      const claim = { wallet, index, amount: +allocationAt(index).toFixed(6), round: round.id, demo: true, feeUsd: round.proposedFeeUsd, at: new Date().toISOString(), signature: null };
+      const remainingBase = SCHED.toBase(BUDGET) - SCHED.toBase(distributedAfter(index - 1));
+      const amountBase = Math.max(0, Math.min(SCHED.toBase(allocationAt(index)), remainingBase));
+      const split = SCHED.splitClaim(amountBase, VEST.immediatePct);
+      const claim = {
+        wallet, index, round: round.id, demo: true, feeUsd: round.proposedFeeUsd,
+        amount: amountBase / SCHED.UNIT, amountBase, immediateBase: split.immediate, lockedBase: split.locked,
+        withdrawnBase: 0, withdrawals: [], at: new Date().toISOString(), signature: randomSig(),
+      };
       st.claims[wallet] = claim;
       const ref = st.referrals[wallet];
       if (ref && ref.status === 'pending') { ref.status = 'verified'; ref.verifiedAt = claim.at; }
       save();
-      return ok({ claim, demo: true });
+      return ok({ claim: view(claim), demo: true });
+    }
+    if (method === 'POST' && p === '/vesting/withdraw') {
+      const wallet = authed();
+      if (!wallet) return fail(401, 'unauthorized', 'Please connect and verify your wallet.');
+      const c = getClaim(wallet);
+      if (!c) return fail(409, 'not_claimed', 'This wallet has not claimed yet.');
+      const v = SCHED.vestingState(c.lockedBase, c.withdrawnBase, vestStart(), Date.now(), VEST.durationDays);
+      if (v.status === 'pending') return fail(409, 'vesting_not_started', 'Vesting has not started. It begins when the campaign is finalized.');
+      if (v.available <= 0) return fail(409, 'nothing_to_withdraw', 'Nothing to withdraw right now. More GDR unlocks every second.');
+      c.withdrawnBase += v.available;
+      const w = { amountBase: v.available, cumulativeBase: c.withdrawnBase, at: new Date().toISOString(), signature: randomSig(), demo: true };
+      c.withdrawals.unshift(w);
+      st.claims[wallet] = c;
+      save();
+      return ok({ withdrawal: w, claim: view(c), demo: true });
+    }
+    if (method === 'POST' && p === '/demo/vesting') {
+      const day = body ? body.day : undefined;
+      if (day === null) st.demoVestingStart = null;
+      else if (Number.isFinite(day) && day >= 0 && day <= 365) st.demoVestingStart = Date.now() - day * SCHED.DAY;
+      else return fail(400, 'invalid_day', 'day must be 0-365 or null');
+      save();
+      return ok({ vesting: vestingInfo() });
     }
     if (method === 'POST' && p === '/referral/bind') {
       const wallet = authed();
@@ -225,7 +266,7 @@
         recent: rows.slice(-10).reverse().map(([referee, r]) => ({ referee: short(referee), status: r.status, at: r.at })),
         rank: me ? me.rank : null,
         rewards: { ratePercent: CFG.referral.ratePercent, confirmed: CFG.referral.confirmed, accrued: null, paid: null, asset: null },
-        claim: st.claims[wallet] || null,
+        claim: view(getClaim(wallet)),
       });
     }
     if (method === 'GET' && p === '/activity') {

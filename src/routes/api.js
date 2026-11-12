@@ -5,7 +5,7 @@ const config = require('../config/campaign');
 const curve = require('../lib/curve');
 const store = require('../lib/store');
 const { isValidAddress, verifySignature, shortAddress, base58Encode } = require('../lib/solana');
-const { scheduleRounds, demoClaims } = require('../lib/schedule');
+const { scheduleRounds, demoClaims, claimView, vestingState, DAY } = require('../lib/schedule');
 
 const router = express.Router();
 const SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
@@ -61,13 +61,25 @@ function auth(req, res, next) {
   }
 }
 
-const rounds = () => scheduleRounds(config.rounds, Date.now(), config.demo);
+const rounds = () => scheduleRounds(config.rounds, Date.now(), config.demo,
+  { claimCount: store.claimCount(), distributedAfter: curve.distributedAfter, N: curve.N });
+const view = (c) => claimView(c, store.vestingStart(), Date.now(), config.vesting.durationDays);
+
+function vestingInfo() {
+  const v = vestingState(0, 0, store.vestingStart(), Date.now(), config.vesting.durationDays);
+  return {
+    ...config.vesting,
+    status: v.status, startTs: v.startTs, endTs: v.endTs, percent: v.percent,
+    simulated: !config.vesting.startsAt && store.vestingStart() != null,
+  };
+}
 function activeRound() { return rounds().find((r) => r.status === 'active') || null; }
 
 function publicRound(r) {
   return {
     id: r.id, name: r.name, status: r.status,
-    startsAt: r.startsAt, endsAt: r.endsAt, demoSchedule: !!r.demoSchedule,
+    startsAt: r.startsAt, endsAt: r.endsAt, projected: !!r.projected,
+    capGdr: r.capGdr, claimedGdr: r.claimedGdr != null ? +r.claimedGdr.toFixed(2) : null, progress: r.progress,
     fee: r.fee.confirmed ? { amount: r.fee.amount, currency: r.fee.currency } : null,
     // demo MVP shows the proposed fee so the pay-to-claim step can be reviewed
     proposedFeeUsd: config.DEMO_MODE ? r.fee.amount : null,
@@ -116,6 +128,7 @@ router.get('/campaign', (req, res) => {
     rounds: rounds().map(publicRound),
     activeRound: activeRound() ? activeRound().id : null,
     stats: stats(),
+    vesting: vestingInfo(),
     curve: { ...curve.meta, first: curve.MAX, last: curve.MIN, positions: curve.N, budget: curve.BUDGET },
     referral: { ratePercent: config.referral.ratePercent, confirmed: config.referral.confirmed, levels: config.referral.levels },
     kolPool: config.kolPool,
@@ -172,7 +185,7 @@ router.get('/eligibility/:wallet', (req, res) => {
   if (!validWallet(wallet)) return fail(res, 400, 'invalid_wallet', 'Invalid wallet address.');
 
   const claim = store.getClaim(wallet);
-  if (claim) return res.json({ status: 'claimed', claim });
+  if (claim) return res.json({ status: 'claimed', claim: view(claim) });
 
   const round = activeRound();
   if (!round) return res.json({ status: 'round_inactive', message: 'No claim round is open right now. Check the round timeline for the next window.' });
@@ -206,7 +219,30 @@ router.post('/claim', rateLimit({ windowMs: 60_000, max: 10 }), auth, (req, res)
 
   const out = store.recordClaim(wallet, { round: round.id, demo: true, feeUsd: round.fee.amount });
   if (out.error) return fail(res, 409, out.error, out.error === 'campaign_complete' ? 'The claim allocation has been fully distributed.' : 'This wallet has already claimed.');
-  res.json({ claim: out.claim, demo: true });
+  res.json({ claim: view(out.claim), demo: true });
+});
+
+// --- vesting withdrawals (unlimited; only the currently vested, not-yet-withdrawn balance)
+router.post('/vesting/withdraw', rateLimit({ windowMs: 60_000, max: 20 }), auth, (req, res) => {
+  if (!config.DEMO_MODE) return fail(res, 501, 'not_live', 'Vesting withdrawals open once the audited program is live.');
+  const out = store.withdrawVested(req.wallet);
+  const msgs = {
+    not_claimed: 'This wallet has not claimed yet.',
+    vesting_not_started: 'Vesting has not started. It begins when the campaign is finalized.',
+    nothing_to_withdraw: 'Nothing to withdraw right now. More GDR unlocks every second.',
+  };
+  if (out.error) return fail(res, 409, out.error, msgs[out.error]);
+  res.json({ withdrawal: out.withdrawal, claim: view(out.claim), demo: true });
+});
+
+// --- demo only: simulate the global vesting start (campaign finalization)
+router.post('/demo/vesting', (req, res) => {
+  if (!config.DEMO_MODE) return fail(res, 404, 'not_found', 'Not found');
+  const { day } = req.body || {};
+  if (day === null) store.setDemoVestingStart(null);
+  else if (Number.isFinite(day) && day >= 0 && day <= 365) store.setDemoVestingStart(Date.now() - day * DAY);
+  else return fail(res, 400, 'invalid_day', 'day must be 0-365 or null');
+  res.json({ vesting: vestingInfo() });
 });
 
 // --- referrals
@@ -244,7 +280,7 @@ router.get('/referrals/me', auth, (req, res) => {
       paid: null,
       asset: null,
     },
-    claim: store.getClaim(wallet),
+    claim: view(store.getClaim(wallet)),
   });
 });
 

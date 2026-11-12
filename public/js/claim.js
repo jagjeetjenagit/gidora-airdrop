@@ -22,12 +22,14 @@
   const usd = (gdr, d = 2) => money(gdr * price(), d);
   const refLink = () => (me ? `${location.origin}${BASE}?ref=${me.code}` : '');
   const activeRound = () => campaign && campaign.rounds.find((r) => r.status === 'active');
+  const gdrB = (b) => fmt.gdr(b / 1e6);
   const claimFee = () => { const r = activeRound(); return r ? (r.fee ? r.fee.amount : r.proposedFeeUsd) : null; };
 
   // ------------------------------------------------------------ campaign
   async function loadCampaign() {
     try {
       campaign = await api('/campaign');
+      document.dispatchEvent(new CustomEvent('gdr:campaign', { detail: campaign }));
       renderShared();
       renderClaimBox();
     } catch (e) {
@@ -42,8 +44,16 @@
     if (pool) pool.textContent = usd(campaign.curve.budget, 0);
 
     const roundsHtml = '<span class="lbl">Round</span>' + campaign.rounds.map((r) =>
-      `<span class="r ${r.status === 'active' ? 'on' : r.status === 'completed' ? 'done' : ''}" title="${esc(r.name)} · ${r.status}">${r.id}</span>`).join('');
+      `<span class="r ${r.status === 'active' ? 'on' : r.status === 'completed' ? 'done' : ''}" title="${esc(r.name)} · ${fmt.int(r.capGdr)} GDR · ${r.status}">${r.id}</span>`).join('');
     $$('[data-rounds]').forEach((el) => { el.innerHTML = roundsHtml; });
+
+    const ar = activeRound();
+    const campPct = (s.distributed / campaign.curve.budget) * 100;
+    const progHtml = `${ar ? `<div class="fx-prog-row"><span>${esc(ar.name)} allocation</span><b>${fmt.int(ar.claimedGdr)} / ${fmt.int(ar.capGdr)} GDR</b></div>
+      <div class="fx-prog"><span style="width:${(ar.progress * 100).toFixed(2)}%"></span></div>` : ''}
+      <div class="fx-prog-row"><span>Campaign progress</span><b>${fmt.int(s.distributed)} / ${fmt.int(campaign.curve.budget)} GDR · ${campPct.toFixed(2)}%</b></div>
+      <div class="fx-prog camp"><span style="width:${campPct.toFixed(3)}%"></span></div>`;
+    $$('[data-progress]').forEach((el) => { el.innerHTML = progHtml; });
 
     const digits = String(s.claimCount).padStart(6, '0');
     if (digits !== lastTiles) {
@@ -68,7 +78,7 @@
       const d = Math.floor(ms / 864e5); ms -= d * 864e5;
       const h = Math.floor(ms / 36e5); ms -= h * 36e5;
       const m = Math.floor(ms / 6e4); const sec = Math.floor((ms - m * 6e4) / 1000);
-      html = `${active ? `${esc(t.name)} ends in` : `${esc(t.name)} starts in`} <b>${pad(d)}d</b><b>${pad(h)}h</b><b>${pad(m)}m</b><b>${pad(sec)}s</b>`;
+      html = `${active ? `${esc(t.name)} closes in${t.projected ? ' (est.)' : ''}` : `${esc(t.name)} starts in`} <b>${pad(d)}d</b><b>${pad(h)}h</b><b>${pad(m)}m</b><b>${pad(sec)}s</b>`;
     }
     $$('[data-countdown]').forEach((el) => { el.innerHTML = html; });
   }
@@ -89,11 +99,14 @@
           <div class="fx-worth" style="color:var(--green);font-weight:600">✓ Successfully Claimed</div>
           <div class="fx-value-box">
             <div class="fx-value g">${usd(claim.amount)}</div>
-            <div class="fx-value-sub">${fmt.gdr(claim.amount)} GDR received · claim #${fmt.int(claim.index)}</div>
-            <button class="fx-btn-black fx-btn-green" data-goto-ref>Share referral link</button>
+            <div class="fx-value-sub">${fmt.gdr(claim.amount)} GDR allocated · claim #${fmt.int(claim.index)}</div>
+            <div class="fx-split"><span><b class="g">${gdrB(claim.immediateBase)}</b> received now (25%)</span><span><b>${gdrB(claim.lockedBase)}</b> vesting (75%)</span></div>
+            <button class="fx-btn-black fx-btn-green" data-goto-vest>View vesting &amp; withdraw</button>
+            <button class="fx-linkbtn" data-goto-ref>Share referral link</button>
           </div>
         </div></div>`;
       el.querySelector('[data-goto-ref]').addEventListener('click', () => $('[data-referral]').scrollIntoView({ behavior: 'smooth', block: 'center' }));
+      el.querySelector('[data-goto-vest]').addEventListener('click', () => $('[data-vesting]').scrollIntoView({ behavior: 'smooth', block: 'center' }));
       return;
     }
 
@@ -108,6 +121,7 @@
         <div class="fx-value-box">
           <div class="fx-value gold">${usd(s.nextAllocation)}</div>
           <div class="fx-value-sub">≈ ${fmt.gdr(s.nextAllocation)} GDR · claim #${fmt.int(s.nextPosition)}</div>
+          <div class="fx-split"><span><b class="g">${fmt.gdr(s.nextAllocation * 0.25)}</b> instantly (25%)</span><span><b>${fmt.gdr(s.nextAllocation * 0.75)}</b> vests 90 days (75%)</span></div>
           ${btn}
           ${fee != null ? `<div class="fx-fee-note">Claim fee <b>${money(fee)}</b> · ${esc(activeRound().name)}${campaign.rounds[0].fee ? '' : ' (proposed)'}</div>` : ''}
         </div>
@@ -175,6 +189,7 @@
       <div class="fx-avatar" aria-hidden="true"></div>
       <dl class="fx-kv">
         <dt>Wallet</dt><dd>${connected() ? `<span class="mono">${esc(fmt.short(wallet.address))}</span><button class="icon-mini" data-copy-addr title="Copy address">${icon('copy')}</button>` : '<span class="muted">Not connected</span>'}</dd>
+        <dt>Eligibility</dt><dd>${connected() ? '<span class="fx-st-g">✓ Eligible</span>' : '—'}</dd>
         <dt>Status</dt><dd><span class="fx-dot ${claimed ? 'g' : 'r'}"></span><span class="${claimed ? 'fx-st-g' : 'fx-st-r'}">${claimed ? 'Claimed' : 'Unclaimed'}</span></dd>
         <dt>Referral</dt><dd>${claimed && me ? `<span class="fx-pill">${esc(me.code)}</span>` : `<span class="muted">${icon('lock', 'i-inline')} Locked</span>`}</dd>
         <dt>Claim ID</dt><dd><span class="mono">${claimed ? '#' + String(claim.index).padStart(7, '0') : '—'}</span></dd>
@@ -183,7 +198,7 @@
         <div>
           <div class="lbl">Airdrop value</div>
           <div class="val ${claimed ? 'g' : 'r'}">${claimed ? usd(claim.amount) : '$0.00'}</div>
-          <div class="sub ${claimed ? 'g' : 'r'}">${claimed ? `▲ ${fmt.gdr(claim.amount)} GDR received` : '▼ Not claimed yet'}</div>
+          <div class="sub ${claimed ? 'g' : 'r'}">${claimed ? `▲ ${fmt.gdr(claim.amount)} GDR allocated` : '▼ Not claimed yet'}</div>
         </div>
         <div class="foot">${round ? `${esc(round.name)} · <b>Live</b>` : ''}</div>
       </div>`;
@@ -309,7 +324,7 @@
     renderSummary();
     renderSteps();
     renderClaimBox();
-    document.dispatchEvent(new CustomEvent('gdr:dash', { detail: { connected: connected(), claimed: !!claim, refLink: claim ? refLink() : '' } }));
+    document.dispatchEvent(new CustomEvent('gdr:dash', { detail: { connected: connected(), claimed: !!claim, claim, campaign, refLink: claim ? refLink() : '' } }));
   }
 
   // ------------------------------------------------------------ pay & claim flow
@@ -322,15 +337,20 @@
     const d = modal.open(`
       <div class="modal-head"><h3 id="app-modal-title">Claim your GDR</h3><button class="icon-btn" data-close aria-label="Close">${icon('x')}</button></div>
       <div class="claim-amount-box mt-2">
-        <div class="claim-amount-label">You will receive</div>
+        <div class="claim-amount-label">Your airdrop allocation</div>
         <div class="claim-amount">${fmt.gdr(s.nextAllocation)}<small>GDR</small></div>
         <div class="muted xsmall mt-2">≈ ${usd(s.nextAllocation)} at the $${price()} estimate · claim #${fmt.int(s.nextPosition)}</div>
+      </div>
+      <div class="fx-split-box">
+        <div><span>Sent to your wallet now</span><b class="g">${fmt.gdr(s.nextAllocation * 0.25)} GDR</b><small>25% immediate</small></div>
+        <div><span>Locked in your vesting account</span><b>${fmt.gdr(s.nextAllocation * 0.75)} GDR</b><small>75% · unlocks over 90 days after campaign finalization</small></div>
       </div>
       <dl class="kv">
         <dt>Wallet</dt><dd class="mono">${esc(fmt.short(wallet.address))}</dd>
         <dt>Round</dt><dd>${esc(r ? r.name : '—')}</dd>
         <dt>Claim fee</dt><dd>${money(fee)}${r && !r.fee ? ' <span class="muted xsmall">(proposed)</span>' : ''}</dd>
         <dt>Network fee</dt><dd>~0.000005 SOL</dd>
+        <dt>Claims per wallet</dt><dd>One, permanent and non-reversible</dd>
       </dl>
       <div class="fx-total"><span>Total to pay</span><span>${money(fee)} + network fee</span></div>
       <div class="claim-actions mt-3" style="grid-template-columns:1fr 1.4fr">
@@ -349,9 +369,8 @@
       <ol class="fx-paysteps">
         <li data-st="1"><span class="s"></span>Approve ${money(fee)} payment in your wallet</li>
         <li data-st="2"><span class="s"></span>Payment confirmed on Solana</li>
-        <li data-st="3"><span class="s"></span>Sending GDR to your wallet</li>
+        <li data-st="3"><span class="s"></span>Sending 25% to your wallet and locking 75% in vesting</li>
       </ol>`);
-    d.querySelector('.modal-head').insertAdjacentHTML('beforeend', '');
     const step = (n, st) => { const li = d.querySelector(`[data-st="${n}"]`); if (li) li.className = st; };
     try {
       step(1, 'run'); await wait(DEMO ? 1200 : 0); step(1, 'done');
@@ -366,7 +385,8 @@
       d.innerHTML = `<div class="fx-success">
           <div class="big">✓</div>
           <h3>Claim successful</h3>
-          <p class="muted small">You received <b class="gold">${fmt.gdr(claim.amount)} GDR</b> (≈ ${usd(claim.amount)}). Your referral rewards are now unlocked.</p>
+          <p class="muted small">Allocation <b class="gold">${fmt.gdr(claim.amount)} GDR</b> (≈ ${usd(claim.amount)}).<br><b class="g">${gdrB(claim.immediateBase)} GDR</b> sent to your wallet now · <b>${gdrB(claim.lockedBase)} GDR</b> locked in vesting.</p>
+          <p class="mono xsmall muted">Tx ${esc(fmt.short(claim.signature || ''))}${DEMO ? ' (demo)' : ''}</p>
           <button class="btn btn-primary btn-block mt-2" data-close>View my dashboard</button>
         </div>`;
       d.querySelector('[data-close]').addEventListener('click', () => { modal.close(); $('#dashboard').scrollIntoView({ behavior: 'smooth' }); });
@@ -389,6 +409,7 @@
 
   // ------------------------------------------------------------ wiring
   window.GDRClaim = { confirm: confirmClaim };
+  document.addEventListener('gdr:refresh', async () => { await loadCampaign(); await renderDashboard(); });
   document.addEventListener('wallet:change', () => {
     if (wallet.status === 'connecting') return;
     me = null; claim = null;

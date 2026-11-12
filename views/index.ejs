@@ -12,12 +12,14 @@
       <div class="fx-wallets">WALLETS</div>
       <p class="fx-tag">Limited like Bitcoin,<br>Claimable by Everyone.</p>
       <button class="fx-btn-gold" data-action="connect">Get Early Access</button>
+      <p class="fx-split-hero"><b>25%</b> instantly at claim · <b>75%</b> vests linearly over 90 days</p>
       <p class="fx-fine">GDR ESTIMATED AT $<span data-price>22</span> · REFERENCE VALUE, NOT A GUARANTEED PRICE</p>
     </div>
 
     <div class="fx-panel fx-claim-panel">
       <div class="fx-rounds" data-rounds></div>
       <div class="fx-tiles" data-tiles aria-label="Wallets claimed"></div>
+        <div class="fx-progress" data-progress></div>
       <div data-claimbox></div>
       <div class="fx-countdown" data-countdown></div>
     </div>
@@ -35,6 +37,7 @@
 
     <div class="fx-col fx-col-l">
       <div class="fx-profile" data-profile></div>
+      <div class="fx-panel fx-vesting" data-vesting id="vesting"></div>
       <div class="fx-panel fx-overview" data-overview></div>
       <div class="fx-panel fx-referral" data-referral></div>
       <div class="fx-panel" data-summary></div>
@@ -45,6 +48,7 @@
       <div class="fx-panel fx-claim-panel fx-dash-claim">
         <div class="fx-rounds" data-rounds></div>
         <div class="fx-tiles" data-tiles aria-label="Wallets claimed"></div>
+        <div class="fx-progress" data-progress></div>
         <div data-claimbox></div>
         <div class="fx-countdown" data-countdown></div>
       </div>
@@ -88,7 +92,15 @@
       </details>
       <details>
         <summary>What are the eight rounds?</summary>
-        <p>Time windows that control when claims can be made. They don't reset the allocation curve.</p>
+        <p>The 10,000,000 GDR allocation is split into eight rounds: 100,000 · 100,000 · 200,000 · 400,000 · 200,000 · 2,000,000 · 3,000,000 · 4,000,000 GDR. A round closes when its allocation has been claimed and the next one opens. Rounds don't reset the allocation curve.</p>
+      </details>
+      <details>
+        <summary>Do I get all my GDR at once?</summary>
+        <p>No. Each wallet claims once. 25% of your allocation is sent to your wallet immediately, and 75% is locked in your vesting account.</p>
+      </details>
+      <details>
+        <summary>When does vesting start, and how do withdrawals work?</summary>
+        <p>Vesting starts at one global time for everyone, once all 10,000,000 GDR have been distributed and the campaign is finalized on-chain. Your locked 75% then unlocks linearly over 90 days. You can withdraw unlocked GDR as many times as you like. Each withdrawal sends only what has vested and not been withdrawn yet.</p>
       </details>
     </div>
   </div>
@@ -105,5 +117,5 @@
 </div>
 <% } %>
 
-<% var scripts = ['claim', 'social']; %>
+<% var scripts = ['claim', 'vesting', 'social']; %>
 <%- include('partials/footer', { scripts: scripts }) %>

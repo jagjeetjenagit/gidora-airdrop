@@ -78,8 +78,21 @@ Connecting a wallet asks the user to **sign a free message** that includes a ser
 | GET | `/api/eligibility/:wallet` | eligible / claimed / review / not_eligible / round_inactive / unavailable |
 | POST | `/api/claim` 🔒 | Demo mode only. Production claims go through the audited Solana program |
 | POST | `/api/referral/bind` 🔒 | First-touch attribution; rejects self-referral and post-claim binding |
-| GET | `/api/referrals/me` 🔒 | Code, counts, rank, claim, reward status |
+| GET | `/api/referrals/me` 🔒 | Code, counts, rank, claim (with live vesting state), reward status |
+| POST | `/api/vesting/withdraw` 🔒 | Demo mode only. Withdraws the vested, not-yet-withdrawn balance (unlimited times) |
+| POST | `/api/demo/vesting` | Demo mode only. `{day: 0-365 \| null}` simulates the global vesting start |
 | GET | `/api/leaderboard?page=&size=&q=&wallet=` | Ranked verified referrals |
+
+## Rounds, 25/75 split and vesting
+
+From the *Airdrop Claim & Vesting Master Specification* and the *8-Round Claim & Vesting Smart Contract Spec v1.0*:
+
+- **Rounds are cap-driven.** Round caps are 100k, 100k, 200k, 400k, 200k, 2M, 3M and 4M GDR (10M total). A round is active while cumulative GDR distributed is inside its window. In demo mode the open/close times are projected from the simulated claim rate and labelled "est.".
+- **Claim split.** Each wallet claims once. `Immediate = floor(A × 25%)` goes to the wallet and `Locked = A − Immediate` goes to vesting. All math is in integer base units (6 decimals assumed until the mint is published).
+- **Vesting.** `Vested = floor(L × elapsed / 90 days)` from **one global start** (campaign finalization). `Withdrawable = Vested − withdrawn`. Withdrawals are unlimited.
+- The math lives in `src/lib/schedule.js`, which is shared verbatim with the static build and covered by `test/vesting.test.js`.
+- **Demo:** the Vesting panel has "simulate global vesting" buttons (Not finalized / Day 0 / 1 / 30 / 60 / 90) so withdrawals can be reviewed before the campaign really completes.
+- **Open decisions (contract spec §18)** shown as such in the UI: vesting trigger (D5: fully distributed vs. all rounds finalized), unclaimed-GDR treatment (D6), mint decimals (D7).
 
 ## Allocation curve (important finding)
 
@@ -115,6 +128,8 @@ These are product decisions the specs list as open. Set them in `src/config/camp
 - [ ] **KOL pool** full tier schedule and funding status
 - [ ] `GDR_MINT`, `CLAIM_PROGRAM_ID`, `SESSION_SECRET`, social/support links
 - [ ] Replace `src/lib/store.js` with the indexer that reads on-chain `ClaimRecord` / `ReferralRecord` accounts
+- [ ] Vesting trigger (D5), unclaimed GDR policy (D6), mint decimals (D7). Set `vesting.startsAt` once `finalize_campaign` has run (or read it from the Campaign PDA)
+- [ ] Wire the Withdraw button to `withdraw_vested` and read `ClaimExecuted` / `VestingWithdrawn` events from the indexer
 - [ ] Wire the claim button to the program instruction (build tx → `signAndSendTransaction` → show the real signature and explorer link)
 
 ## Compliance guardrails built in

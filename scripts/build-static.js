@@ -45,7 +45,7 @@ const pages = [
     fs.writeFileSync(file, html);
   }
 
-  const publicRound = (r) => ({ id: r.id, name: r.name, status: r.status, startsAt: r.startsAt, endsAt: r.endsAt, fee: r.fee.confirmed ? { amount: r.fee.amount, currency: r.fee.currency } : null, proposedFeeUsd: r.fee.amount });
+  const publicRound = (r) => ({ id: r.id, name: r.name, status: r.status, startsAt: r.startsAt, endsAt: r.endsAt, capGdr: r.capGdr, fee: r.fee.confirmed ? { amount: r.fee.amount, currency: r.fee.currency } : null, proposedFeeUsd: r.fee.amount });
   const staticConfig = {
     brand: config.brand,
     network: { name: config.network.name, cluster: config.network.cluster, explorer: config.network.explorer },
@@ -53,6 +53,7 @@ const pages = [
     rounds: config.rounds.map(publicRound), // statuses/dates are computed in-browser by GDRSchedule
     referral: { ratePercent: config.referral.ratePercent, confirmed: config.referral.confirmed, levels: config.referral.levels },
     kolPool: config.kolPool,
+    vesting: config.vesting,
     demo: config.demo,
     estPriceUsd: config.token.estPriceUsd,
     curve: { N: curve.N, MAX: curve.MAX, MIN: curve.MIN, BUDGET: curve.BUDGET, K: curve.K },

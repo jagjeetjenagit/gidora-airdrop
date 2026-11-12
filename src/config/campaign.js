@@ -13,11 +13,15 @@ const DEMO_MODE = process.env.DEMO_MODE !== 'false';
 // until `feesConfirmed` is set to true.
 const PROPOSED_FEES_USD = [3, 3, 5, 5, 6, 6, 8, 8];
 
+// Master spec §5: GDR allocated per round (sum = 10,000,000 GDR)
+const ROUND_CAPS_GDR = [100_000, 100_000, 200_000, 400_000, 200_000, 2_000_000, 3_000_000, 4_000_000];
+
 const rounds = PROPOSED_FEES_USD.map((fee, i) => ({
   id: i + 1,
   name: `Round ${i + 1}`,
   // 'upcoming' | 'active' | 'completed' — set by operator from approved calendar
-  status: 'upcoming', // derived from dates when set (see src/lib/schedule.js)
+  status: 'upcoming', // derived from cumulative distribution vs. round cap (src/lib/schedule.js)
+  capGdr: ROUND_CAPS_GDR[i],
   startsAt: null, // ISO string once approved
   endsAt: null,
   fee: { amount: fee, currency: 'USD-equivalent', confirmed: false },
@@ -52,6 +56,18 @@ module.exports = {
     estPriceUsd: Number(process.env.GDR_EST_PRICE_USD || 22),
   },
   rounds,
+  // Master spec §1-4: 25% immediate, 75% locked, 90-day linear vesting from ONE global start
+  vesting: {
+    immediatePct: 25,
+    lockedPct: 75,
+    durationDays: 90,
+    // Global start timestamp, set once by the on-chain finalize_campaign instruction
+    startsAt: process.env.VESTING_START || null,
+    trigger: 'Starts once all 10,000,000 GDR are distributed and the campaign is finalized on-chain.',
+    triggerConfirmed: false, // contract spec D5: fully distributed vs. all rounds finalized
+    decimals: 6,
+    decimalsConfirmed: false, // contract spec D7
+  },
   minimumBalance: {
     // ~ $5 equivalent discussed; asset, oracle & enforcement TBD
     description: 'A small SOL balance is required for Solana network fees.',
