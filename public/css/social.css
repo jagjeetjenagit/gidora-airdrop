@@ -111,3 +111,24 @@
   .fx-social .fx-lock { grid-auto-flow: row; grid-template-columns: none; }
 }
 @media (max-width: 640px) { .sc-cards { grid-template-columns: minmax(0, 1fr); } .sf-tabs button { padding: 6px 8px; } }
+
+/* social connect: readable before claim (no blur) */
+.fx-social.is-locked { border-top-color: var(--red); }
+.sc-warn { color: var(--red); font-weight: 700; }
+.sc-btn.locked { background: #2a2a2a; border-color: #3a3a3a; color: #ddd; }
+.sc-btn.locked svg { width: 13px; height: 13px; color: var(--red); }
+.sc-btn.locked:hover { border-color: var(--red-line); }
+
+/* header social buttons */
+.hdr-social { display: flex; gap: 6px; align-items: center; }
+.hdr-social[hidden] { display: none; }
+.hs-btn { position: relative; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; cursor: pointer; color: #fff; border: 1px solid #333; background: #111; }
+.hs-btn svg { width: 16px; height: 16px; }
+.hs-btn.tg { background: #229ED9; border-color: #229ED9; }
+.hs-btn.locked { opacity: .55; }
+.hs-btn i { position: absolute; right: -3px; top: -3px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid #000; }
+.hs-btn.on i { background: var(--green); }
+.hs-btn.ready i { background: var(--gold); }
+.hs-btn.locked i { background: var(--red); }
+.hs-btn:hover { filter: brightness(1.15); }
+@media (max-width: 640px) { .hs-btn { width: 32px; height: 32px; } }

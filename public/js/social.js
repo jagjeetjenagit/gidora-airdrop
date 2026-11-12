@@ -92,27 +92,49 @@
         <span class="sc-ic ${k}">${n.svg}</span>
         <div class="sc-meta">
           <b>${n.full}</b>
-          ${acct ? `<span class="sc-ok" title="Connected as @${esc(acct.handle)}">● @${esc(acct.handle)}</span>` : '<span class="sc-off">Not connected</span>'}
+          ${acct ? `<span class="sc-ok" title="Connected as @${esc(acct.handle)}">● @${esc(acct.handle)}</span>` : `<span class="sc-off">${state.claimed ? 'Not connected' : 'Locked'}</span>`}
         </div>
         ${acct
           ? `<button class="sc-btn ghost" data-sc-off="${k}">Disconnect</button>`
-          : `<button class="sc-btn" data-sc-on="${k}">Connect</button>`}
+          : state.claimed
+            ? `<button class="sc-btn" data-sc-on="${k}">Connect ${n.name}</button>`
+            : `<button class="sc-btn locked" data-sc-on="${k}">${icon('lock')} Connect ${n.name}</button>`}
       </div>`;
     };
     const n = linked().length;
-    el.className = 'fx-panel fx-social';
+    el.className = `fx-panel fx-social ${state.claimed ? '' : 'is-locked'}`;
     el.innerHTML = `
       <div class="sc-head">
         <div>
           <h3>Social Connect</h3>
-          <p>Link your socials to join the GIDORA community feed, post updates and share your referral link.</p>
+          <p>${state.claimed ? 'Link X and Telegram to join the GIDORA community feed, post updates and share your referral link.' : '<span class="sc-warn">Claim your GDR first.</span> Then connect X and Telegram here to unlock the community feed.'}</p>
         </div>
         <span class="sc-count ${n ? 'g' : ''}">${n}/2 linked</span>
       </div>
       <div class="sc-cards">${card('x')}${card('tg')}</div>`;
     el.querySelectorAll('[data-sc-on]').forEach((b) => b.addEventListener('click', () => connectFlow(b.dataset.scOn)));
     el.querySelectorAll('[data-sc-off]').forEach((b) => b.addEventListener('click', () => disconnectNet(b.dataset.scOff)));
-    lockEl(el, !state.claimed, 'Claim GDR to unlock Social Connect', 'claim');
+    renderHeader();
+  }
+
+  // header buttons (top bar, next to the wallet)
+  function renderHeader() {
+    const el = $('[data-hdr-social]');
+    if (!el) return;
+    el.hidden = !state.connected;
+    if (!state.connected) return;
+    const s = getSocial();
+    el.innerHTML = ['x', 'tg'].map((k) => {
+      const acct = s[k];
+      const cls = acct ? 'on' : state.claimed ? 'ready' : 'locked';
+      const tip = acct ? `${NET[k].full}: @${acct.handle}` : state.claimed ? `Connect ${NET[k].full}` : `Claim GDR to connect ${NET[k].full}`;
+      return `<button class="hs-btn ${k} ${cls}" data-hs="${k}" title="${esc(tip)}" aria-label="${esc(tip)}">${NET[k].svg}<i></i></button>`;
+    }).join('');
+    el.querySelectorAll('[data-hs]').forEach((b) => b.addEventListener('click', () => {
+      const k = b.dataset.hs;
+      if (getSocial()[k]) { document.querySelector('[data-social]').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+      connectFlow(k);
+    }));
   }
 
   function lockEl(el, locked, msg, kind) {
@@ -129,7 +151,7 @@
 
   // ------------------------------------------------------------ connect flows (simulated)
   function connectFlow(k) {
-    if (!state.claimed) { toast('Claim GDR first to unlock Social Connect', 'info'); return; }
+    if (!state.claimed) { toast('Claim your GDR first. Social Connect unlocks right after.', 'info'); if (window.GDRClaim) window.GDRClaim.confirm(); return; }
     const n = NET[k];
     const suggestion = ('gdr_' + (wallet.address || 'user').slice(0, 6)).toLowerCase();
     const isX = k === 'x';
@@ -350,7 +372,7 @@
     const prevWallet = state.wallet;
     state = { ...e.detail, wallet: wallet.address };
     if (prevWallet !== wallet.address) { filter = 'all'; livePosts = []; }
-    if (!state.connected) return;
+    if (!state.connected) { renderHeader(); return; }
     renderAll();
     startLive();
   });
