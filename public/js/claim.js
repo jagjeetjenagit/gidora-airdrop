@@ -309,6 +309,7 @@
     renderSummary();
     renderSteps();
     renderClaimBox();
+    document.dispatchEvent(new CustomEvent('gdr:dash', { detail: { connected: connected(), claimed: !!claim, refLink: claim ? refLink() : '' } }));
   }
 
   // ------------------------------------------------------------ pay & claim flow
@@ -387,6 +388,7 @@
   }
 
   // ------------------------------------------------------------ wiring
+  window.GDRClaim = { confirm: confirmClaim };
   document.addEventListener('wallet:change', () => {
     if (wallet.status === 'connecting') return;
     me = null; claim = null;

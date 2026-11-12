@@ -30,14 +30,17 @@
      ===================================================================== -->
 <div id="view-dash" class="fx-view">
   <section class="container fx-dash" id="dashboard" aria-label="Your airdrop dashboard">
-    <div class="fx-col">
+    <!-- Social connect: X + Telegram (unlocks after claim) -->
+    <div class="fx-panel fx-social" data-social></div>
+
+    <div class="fx-col fx-col-l">
       <div class="fx-profile" data-profile></div>
       <div class="fx-panel fx-overview" data-overview></div>
       <div class="fx-panel fx-referral" data-referral></div>
       <div class="fx-panel" data-summary></div>
     </div>
 
-    <div class="fx-col">
+    <div class="fx-col fx-col-r">
       <!-- Figma dashboard: claim panel tops the right column -->
       <div class="fx-panel fx-claim-panel fx-dash-claim">
         <div class="fx-rounds" data-rounds></div>
@@ -49,6 +52,9 @@
       <div class="fx-panel" data-steps></div>
       <div class="fx-panel" data-board="dash"></div>
     </div>
+
+    <!-- Community feed: read + post (needs claim + a linked social) -->
+    <div class="fx-panel fx-feed" data-feed id="feed"></div>
   </section>
 </div>
 
@@ -99,5 +105,5 @@
 </div>
 <% } %>
 
-<% var scripts = ['claim']; %>
+<% var scripts = ['claim', 'social']; %>
 <%- include('partials/footer', { scripts: scripts }) %>
